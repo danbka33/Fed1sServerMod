@@ -2,8 +2,9 @@ local mod_gui = require("__core__/lualib/mod-gui")
 local Stats = {
     name_overhead_stats_factor = "fed1s_factor",
     name_overhead_stats_count = "fed1s_count",
-    name_overhead_search = "fed1s_search",
-    show_stats = "server_mod-show-stats",
+    name_overhead_in_search = "server_mod_in_search",
+    name_overhead_in_search_details = "server_mod_in_search_details",
+    show_stats = "server_mod_show_stats",
 }
 
 local entity_types = {
@@ -51,12 +52,38 @@ local function is_spawner(entity_name)
     return is_entity_type("unit-spawner", entity_name)
 end
 
-function Stats.init()
+function Stats.on_init()
     if not global.biter_count then
         global.biter_count = 0
     end
     if not global.old_biter_count then
         global.old_biter_count = 0
+    end
+
+    for _, player in pairs(game.players) do
+        Stats.update_overhead_stat(player)
+    end
+end
+
+function Stats.on_runtime_mod_setting_changed(event)
+    if event.player_index and event.setting == Stats.show_stats then
+        Stats.update_overhead_stat(game.get_player(event.player_index) --[[@as LuaPlayer]])
+    end
+end
+
+function Stats.on_player_created(event)
+    Stats.update_overhead_stat(game.get_player(event.player_index)) --[[@as LuaPlayer]]
+end
+
+function Stats.on_configuration_changed()
+    for _, player in pairs(game.players) do
+        Stats.update_overhead_stat(player)
+    end
+end
+
+function Stats.on_nth_tick_60(event)
+    for _, player in pairs(game.connected_players) do
+        Stats.update_overhead_stat(player)
     end
 end
 
@@ -68,7 +95,7 @@ function Stats.update_overhead_stat(player)
 
     local statFactor = button_flow[Stats.name_overhead_stats_count]
     local statCount = button_flow[Stats.name_overhead_stats_factor]
-    local searchPlate = button_flow[Stats.name_overhead_search]
+    local searchPlate = button_flow[Stats.name_overhead_in_search]
 
     if not player.mod_settings[Stats.show_stats].value then
         if statFactor then
@@ -107,14 +134,22 @@ function Stats.update_overhead_stat(player)
 
     global.yellowChest = global.yellowChest or {}
 
-    local currentSearch = false
-    for _, yellowChest in pairs(global.yellowChest) do
+    global.tick_yellow_index = global.tick_yellow_index or nil
+
+    local currentInSearch = nil
+    if global.tick_yellow_index and global.yellowChest[global.tick_yellow_index] and global.yellowChest[global.tick_yellow_index].requested then
+        local yellowChest = global.yellowChest[global.tick_yellow_index];
+
         if yellowChest and yellowChest.entity and yellowChest.entity.valid and yellowChest.started then
-            currentSearch = true
+            currentInSearch = ""
+            for itemName, count in pairs(yellowChest.requested) do
+                currentInSearch = currentInSearch .. "[item=" .. itemName .. "] x " .. count .. " "
+            end
+
         end
     end
 
-    if not currentSearch then
+    if not currentInSearch then
         if searchPlate then
             searchPlate.destroy()
         end
@@ -123,9 +158,22 @@ function Stats.update_overhead_stat(player)
             button_flow.add {
                 type = "frame",
                 direction = "horizontal",
-                name = Stats.name_overhead_search,
+                name = Stats.name_overhead_in_search,
                 caption = { "Fed1sServerMod.in_search" }
             }
+            searchPlate = button_flow[Stats.name_overhead_in_search]
+        end
+
+        local searchPlateDetails = searchPlate[Stats.name_overhead_in_search_details]
+
+        if not searchPlateDetails then
+            searchPlate.add {
+                type = "label",
+                name = Stats.name_overhead_in_search_details,
+                caption = { "Fed1sServerMod.in_search_details", currentInSearch }
+            }
+        else
+            searchPlateDetails.caption = currentInSearch
         end
     end
 

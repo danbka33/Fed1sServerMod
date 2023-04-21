@@ -19,11 +19,8 @@ local ServerMod = {
     name_event = "server_mod",
     name_lua_shortcut = "server_mod",
     name_setting_overhead_button = "server_mod-show-overhead-button",
-    show_message_on_center = "server_mod-show-message-on-center",
 
     name_overhead_button = "server_mod_overhead",
-    name_overhead_admin_text = "fed1s_admin_text",
-
 
     action_close_button = "close-gui"
 }
@@ -70,72 +67,16 @@ function ServerMod.get_make_playerdata(player_index)
     return global.playerdata[player_index]
 end
 
-function ServerMod.update_overhead_texts(player)
-    local gui = player.gui.center
-
-
-
-    local playerData = ServerMod.get_make_playerdata(player.index)
-
-    local adminText = gui[ServerMod.name_overhead_admin_text]
-
-    if not player.mod_settings[ServerMod.show_message_on_center].value then
-        if adminText then
-            adminText.destroy()
-        end
-        return
-    end
-
-    if gui and playerData and playerData.role then
-        local isManager = player.permission_group.name == "Manager"
-        local isAdmin = player.permission_group.name == "Admin"
-        local playerRole = playerData.role
-
-        if not adminText then
-            gui.add {
-                type = "flow",
-                direction = "vertical",
-                name = ServerMod.name_overhead_admin_text
-            }
-            adminText = gui[ServerMod.name_overhead_admin_text]
-            adminText.style.top_margin = 200;
-            adminText.ignored_by_interaction = true
-        end
-
-        for _, name in pairs(adminText.children_names) do
-            adminText[name].destroy()
-        end
-
-        for key, message in pairs(ServerMod.get_make_admin_texts()) do
-            if not (player.name == message.playerName) and ((isAdmin) or (message.admin) or (message.manager and isManager) or (message.manager and message.role == playerRole)) then
-                adminText.add {
-                    type = "label",
-                    name = ServerMod.name_overhead_admin_text .. "_" .. key,
-                    caption = { "Fed1sServerMod.admin_text", "[img=utility.notification] " .. message.message .. " [img=utility.notification]" }
-                }
-                adminText[ServerMod.name_overhead_admin_text .. "_" .. key].style.font = "adminFont"
-                --adminText[ServerMod.name_overhead_admin_text .. "_" .. key].style.content_width = 940
-                adminText[ServerMod.name_overhead_admin_text .. "_" .. key].style.single_line = false
-
-                local textColor = { r = 1, g = 1, b = 0 }
-                if (message.manager) then
-                    textColor = { r = 0, g = 1, b = 0 }
-                end
-                adminText[ServerMod.name_overhead_admin_text .. "_" .. key].style.font_color = textColor
-
-            end
-        end
-
-    end
-end
-
-
 ---Makes or destroys the overhead button depending on player setting.
 ---@param player LuaPlayer Player
 function ServerMod.update_overhead_button(player)
     local button_flow = mod_gui.get_button_flow(player)
     if not button_flow then
         return
+    end
+
+    if button_flow["informatron_overhead"] then
+        button_flow["informatron_overhead"].destroy()
     end
 
     local button = button_flow[ServerMod.name_overhead_button]
@@ -338,26 +279,12 @@ function ServerMod.close(player)
     end
 end
 
-function ServerMod.get_make_admin_texts()
-    if not global.adminTexts then
-        global.adminTexts = {}
-    end
-
-    return global.adminTexts
-end
-
 ---Initializes server_mod.
 function ServerMod.on_init()
     global.open_server_mod_check = true
-
-    global.adminTexts = {}
-    Stats.init()
-
     -- In case mod is being added mid-game
     for _, player in pairs(game.players) do
-        Stats.update_overhead_stat(player)
         ServerMod.update_overhead_button(player)
-        ServerMod.update_overhead_texts(player)
     end
 end
 --script.on_init(ServerMod.on_init)
@@ -375,7 +302,6 @@ function ServerMod.on_configuration_changed()
 
         -- Refresh overhead buttons
         ServerMod.update_overhead_button(player)
-        Stats.update_overhead_stat(player)
 
         -- If a player had ServerMod open, close/reopen it to refresh its contents
         local root = ServerMod.get(player)
@@ -385,7 +311,6 @@ function ServerMod.on_configuration_changed()
         end
     end
 end
-script.on_configuration_changed(ServerMod.on_configuration_changed)
 
 ---Handles changes to the overhead button setting.
 ---@param event EventData.on_runtime_mod_setting_changed Event data
@@ -393,45 +318,23 @@ function ServerMod.on_runtime_mod_setting_changed(event)
     if event.player_index and event.setting == ServerMod.name_setting_overhead_button then
         ServerMod.update_overhead_button(game.get_player(event.player_index) --[[@as LuaPlayer]])
     end
-    if event.player_index and event.setting == ServerMod.show_message_on_center then
-        ServerMod.update_overhead_texts(game.get_player(event.player_index) --[[@as LuaPlayer]])
-    end
-    if event.player_index and event.setting == Stats.show_stats then
-        Stats.update_overhead_stat(game.get_player(event.player_index) --[[@as LuaPlayer]])
-    end
 end
-script.on_event(defines.events.on_runtime_mod_setting_changed,
-        ServerMod.on_runtime_mod_setting_changed)
 
 ---Handles new player creation.
 ---@param event EventData.on_player_created Event data
 function ServerMod.on_player_created(event)
     ServerMod.update_overhead_button(game.get_player(event.player_index) --[[@as LuaPlayer]])
-    ServerMod.update_overhead_texts(game.get_player(event.player_index)) --[[@as LuaPlayer]]
-    Stats.update_overhead_stat(game.get_player(event.player_index)) --[[@as LuaPlayer]]
+
     global.open_server_mod_check = true -- triggers a check in `on_nth_tick_60`
 
     local playerData = ServerMod.get_make_playerdata(event.player_index)
     playerData.applied = false
     playerData.role = 'default'
 end
---script.on_event(defines.events.on_player_created, ServerMod.on_player_created)
 
 ---Calls update functions every second.
 ---@param event NthTickEventData Event data
 function ServerMod.on_nth_tick_60(event)
-
-    if ServerMod.get_make_admin_texts() then
-        for key, value in pairs(ServerMod.get_make_admin_texts()) do
-            if event.tick > (value.tick + 60 * 15) then
-                ServerMod.get_make_admin_texts()[key] = nil
-
-                for _, player in pairs(game.players) do
-                    ServerMod.update_overhead_texts(player)
-                end
-            end
-        end
-    end
 
     if global.open_server_mod_check and event.tick >= 1200 then
         for _, player in pairs(game.connected_players) do
@@ -456,7 +359,6 @@ function ServerMod.on_nth_tick_60(event)
     end
 
     for _, player in pairs(game.connected_players) do
-        Stats.update_overhead_stat(player)
         ServerMod.update(player, event.tick)
     end
 end
@@ -464,6 +366,10 @@ end
 ---Handles gui clicks, including for the overhead button.
 ---@param event EventData.on_gui_click Event data
 function ServerMod.on_gui_click(event)
+    if not event or not event.element or not event.element.valid then
+        return
+    end
+
     if event.element.name == ServerMod.name_overhead_button then
         ServerMod.toggle(game.get_player(event.player_index) --[[@as LuaPlayer]])
         return
@@ -478,7 +384,7 @@ function ServerMod.on_gui_click(event)
         playerData.applied = true
         playerData.role = "warrior"
         ServerMod.close(player)
-        apply_player_color(event.player_index)
+        PlayerColor.apply_player_color(event.player_index)
 
         return
     elseif event.element.name == "fed1s_defender" then
@@ -489,7 +395,7 @@ function ServerMod.on_gui_click(event)
         playerData.applied = true
         playerData.role = "defender"
         ServerMod.close(player)
-        apply_player_color(event.player_index)
+        PlayerColor.apply_player_color(event.player_index)
 
         return
     elseif event.element.name == "fed1s_builder" then
@@ -500,7 +406,7 @@ function ServerMod.on_gui_click(event)
         playerData.applied = true
         playerData.role = "builder"
         ServerMod.close(player)
-        apply_player_color(event.player_index)
+        PlayerColor.apply_player_color(event.player_index)
         return
     elseif event.element.name == "fed1s_service" then
         local playerData = ServerMod.get_make_playerdata(event.player_index)
@@ -510,7 +416,7 @@ function ServerMod.on_gui_click(event)
         playerData.applied = true
         playerData.role = "service"
         ServerMod.close(player)
-        apply_player_color(event.player_index)
+        PlayerColor.apply_player_color(event.player_index)
         return
     end
 
@@ -532,10 +438,7 @@ function ServerMod.on_gui_click(event)
                 tags.page_name --[[@as string]]
         )
     end
-
-
 end
---script.on_event(defines.events.on_gui_click, ServerMod.on_gui_click)
 
 ---Closes the Informtron GUI when the player uses `E` or `Esc`.
 ---@param event EventData.on_gui_closed Event data
@@ -544,22 +447,5 @@ function ServerMod.on_gui_closed(event)
         ServerMod.close(game.get_player(event.player_index) --[[@as LuaPlayer]])
     end
 end
-script.on_event(defines.events.on_gui_closed, ServerMod.on_gui_closed)
-
----Handles the keyboard shortcut for ServerMod being used.
----@param event EventData.CustomInputEvent Event data
-function ServerMod.on_keyboard_shortcut(event)
-    ServerMod.toggle(game.get_player(event.player_index) --[[@as LuaPlayer]])
-end
-script.on_event(ServerMod.name_event, ServerMod.on_keyboard_shortcut)
-
----Handles the lua shortcut getting clicked.
----@param event EventData.on_lua_shortcut Event data
-function ServerMod.on_lua_shortcut(event)
-    if event.prototype_name == ServerMod.name_lua_shortcut then
-        ServerMod.toggle(game.get_player(event.player_index) --[[@as LuaPlayer]])
-    end
-end
-script.on_event(defines.events.on_lua_shortcut, ServerMod.on_lua_shortcut)
 
 return ServerMod
