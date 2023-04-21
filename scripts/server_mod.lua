@@ -420,7 +420,7 @@ function ServerMod.on_gui_click(event)
         return
     end
 
-    game.print(event.element.name);
+    --game.print(event.element.name);
 
     if event.element.tags.root ~= "server_mod" then
         return
