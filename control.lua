@@ -5,7 +5,7 @@
 --]]
 
 Stats = require('scripts/stats')
-ServerMod = require('scripts/serverMod')
+ServerMod = require('scripts/server_mod')
 Interface = require('scripts/interface')
 
 script.on_init(function()

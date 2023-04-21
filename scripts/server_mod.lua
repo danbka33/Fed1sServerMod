@@ -1,6 +1,6 @@
 local mod_gui = require("__core__/lualib/mod-gui")
 local ServerMod = {
-    name_root = "serverMod",
+    name_root = "server_mod",
     name_title_flow = "titlebar",
     name_time_label = "game-time",
     name_main_flow = "main-flow",
@@ -16,12 +16,12 @@ local ServerMod = {
 
     content_width = 940,
 
-    name_event = "serverMod",
-    name_lua_shortcut = "serverMod",
-    name_setting_overhead_button = "serverMod-show-overhead-button",
-    show_message_on_center = "serverMod-show-message-on-center",
+    name_event = "server_mod",
+    name_lua_shortcut = "server_mod",
+    name_setting_overhead_button = "server_mod-show-overhead-button",
+    show_message_on_center = "server_mod-show-message-on-center",
 
-    name_overhead_button = "serverMod_overhead",
+    name_overhead_button = "server_mod_overhead",
     name_overhead_admin_text = "fed1s_admin_text",
 
 
@@ -145,7 +145,7 @@ function ServerMod.update_overhead_button(player)
             button_flow.add {
                 type = "sprite-button",
                 name = ServerMod.name_overhead_button,
-                sprite = "virtual-signal/serverMod"
+                sprite = "virtual-signal/server_mod"
             }
         end
     elseif button then
@@ -174,7 +174,7 @@ function ServerMod.open(player, target_page)
         type = "frame",
         direction = "vertical",
         name = ServerMod.name_root,
-        style = "serverMod_root_frame"
+        style = "server_mod_root_frame"
     }
 
     -- Check in case another mod destroyed the GUI upon setting `player.opened`
@@ -190,24 +190,24 @@ function ServerMod.open(player, target_page)
             type = "flow",
             name = ServerMod.name_title_flow,
             direction = "horizontal",
-            style = "serverMod_titlebar_flow"
+            style = "server_mod_titlebar_flow"
         }
         titlebar.drag_target = root
         titlebar.add { -- Title
             type = "label",
-            caption = { "serverMod.window_title_label" },
+            caption = { "server_mod.window_title_label" },
             ignored_by_interaction = true,
             style = "frame_title"
         }
         titlebar.add {
             type = "empty-widget",
             ignored_by_interaction = true,
-            style = "serverMod_drag_handle"
+            style = "server_mod_drag_handle"
         }
         titlebar.add {
             type = "label",
             name = ServerMod.name_time_label,
-            style = "serverMod_time_label",
+            style = "server_mod_time_label",
             caption = { "Fed1sServerMod.discord_link" }
         }
         titlebar.add { -- Close button
@@ -224,7 +224,7 @@ function ServerMod.open(player, target_page)
         type = "flow",
         name = ServerMod.name_main_flow,
         direction = "horizontal",
-        style = "serverMod_main_flow"
+        style = "server_mod_main_flow"
     }
 
     -- Content
@@ -232,13 +232,13 @@ function ServerMod.open(player, target_page)
         type = "frame",
         name = ServerMod.name_content_container,
         direction = "vertical",
-        style = "serverMod_content_frame"
+        style = "server_mod_content_frame"
     }
 
     content_container.add {
         type = "scroll-pane",
         name = ServerMod.name_content_pane,
-        style = "serverMod_content_scroll_pane"
+        style = "server_mod_content_scroll_pane"
     }
 
     if target_page and target_page.interface and remote.interfaces[target_page.interface] then
@@ -248,7 +248,7 @@ function ServerMod.open(player, target_page)
         if last_page and last_page.interface and remote.interfaces[last_page.interface] then
             ServerMod.display(player, last_page.interface, last_page.page_name)
         else
-            ServerMod.display(player, "serverMod", "serverMod")
+            ServerMod.display(player, "server_mod", "server_mod")
         end
     end
 end
@@ -275,8 +275,8 @@ function ServerMod.display(player, interface, page_name)
     local player_index = player.index
 
     content.clear()
-    if remote.interfaces[interface]["serverMod_page_content"] then
-        remote.call(interface, "serverMod_page_content",
+    if remote.interfaces[interface]["server_mod_page_content"] then
+        remote.call(interface, "server_mod_page_content",
                 { player_index = player_index, page_name = page_name, element = content })
     end
 
@@ -316,8 +316,8 @@ function ServerMod.update(player, tick)
     local page_name = last_page.page_name
     local content = _get_gui_element(root, ServerMod.path_content_pane) --[[@as LuaGuiElement]]
 
-    if remote.interfaces[interface]["serverMod_page_content_update"] then
-        remote.call(interface, "serverMod_page_content_update",
+    if remote.interfaces[interface]["server_mod_page_content_update"] then
+        remote.call(interface, "server_mod_page_content_update",
                 { player_index = player_index, page_name = page_name, element = content })
     end
 
@@ -330,7 +330,7 @@ function ServerMod.update(player, tick)
     end
 end
 
----Closes the serverMod GUI for the given player
+---Closes the server_mod GUI for the given player
 function ServerMod.close(player)
     local root = ServerMod.get(player)
     if root then
@@ -346,9 +346,9 @@ function ServerMod.get_make_admin_texts()
     return global.adminTexts
 end
 
----Initializes serverMod.
+---Initializes server_mod.
 function ServerMod.on_init()
-    global.open_serverMod_check = true
+    global.open_server_mod_check = true
 
     global.adminTexts = {}
     Stats.init()
@@ -366,11 +366,11 @@ end
 function ServerMod.on_configuration_changed()
     for _, player in pairs(game.players) do
         -- Destroy old ServerMod windows if they're open
-        if player.gui.center["serverMod_main"] then
-            player.gui.center["serverMod_main"].destroy()
+        if player.gui.center["server_mod_main"] then
+            player.gui.center["server_mod_main"].destroy()
         end
-        if player.gui.screen["serverMod_main"] then
-            player.gui.screen["serverMod_main"].destroy()
+        if player.gui.screen["server_mod_main"] then
+            player.gui.screen["server_mod_main"].destroy()
         end
 
         -- Refresh overhead buttons
@@ -409,7 +409,7 @@ function ServerMod.on_player_created(event)
     ServerMod.update_overhead_button(game.get_player(event.player_index) --[[@as LuaPlayer]])
     ServerMod.update_overhead_texts(game.get_player(event.player_index)) --[[@as LuaPlayer]]
     Stats.update_overhead_stat(game.get_player(event.player_index)) --[[@as LuaPlayer]]
-    global.open_serverMod_check = true -- triggers a check in `on_nth_tick_60`
+    global.open_server_mod_check = true -- triggers a check in `on_nth_tick_60`
 
     local playerData = ServerMod.get_make_playerdata(event.player_index)
     playerData.applied = false
@@ -433,14 +433,14 @@ function ServerMod.on_nth_tick_60(event)
         end
     end
 
-    if global.open_serverMod_check and event.tick >= 1200 then
+    if global.open_server_mod_check and event.tick >= 1200 then
         for _, player in pairs(game.connected_players) do
             local playerdata = ServerMod.get_make_playerdata(player.index)
             if not playerdata.applied then
                 ServerMod.open(player)
             end
         end
-        global.open_serverMod_check = nil
+        global.open_server_mod_check = nil
     end
 
     for _, player in pairs(game.connected_players) do
@@ -516,7 +516,7 @@ function ServerMod.on_gui_click(event)
 
     game.print(event.element.name);
 
-    if event.element.tags.root ~= "serverMod" then
+    if event.element.tags.root ~= "server_mod" then
         return
     end
 

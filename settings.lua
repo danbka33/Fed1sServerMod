@@ -6,19 +6,19 @@
 data:extend{
     {
         type = "bool-setting",
-        name = "serverMod-show-overhead-button",
+        name = "server_mod-show-overhead-button",
         setting_type = "runtime-per-user",
         default_value = true,
     },
     {
         type = "bool-setting",
-        name = "serverMod-show-message-on-center",
+        name = "server_mod-show-message-on-center",
         setting_type = "runtime-per-user",
         default_value = true,
     },
     {
         type = "bool-setting",
-        name = "serverMod-show-stats",
+        name = "server_mod-show-stats",
         setting_type = "runtime-per-user",
         default_value = true,
     }

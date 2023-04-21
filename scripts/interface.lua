@@ -1,6 +1,6 @@
 local Interface = {}
 
-function Interface.serverMod_default_menu(player_index)
+function Interface.server_mod_default_menu(player_index)
   return {
   }
 end
@@ -9,12 +9,12 @@ end
 ---@param player_index uint Player index
 ---@param element LuaGuiElement Content scroll pane to place elements inside
 ---@param page_name string Page name
-function Interface.serverMod_page_content(player_index, element, page_name)
+function Interface.server_mod_page_content(player_index, element, page_name)
   local player = game.get_player(player_index) --[[@as LuaPlayer]]
   local currentPlayerData = ServerMod.get_make_playerdata(player.index)
 
   -- Main page
-  if page_name == "serverMod" then
+  if page_name == "server_mod" then
 
     local warriorCount = 0
     local warriorCountOnline = 0
@@ -154,7 +154,7 @@ function Interface.serverMod_page_content(player_index, element, page_name)
       type = "button",
       caption = {"Fed1sServerMod.fed1s_warrior_button"},
       name = "fed1s_warrior",
-      style = "serverMod_menu_button_primary"}
+      style = "server_mod_menu_button_primary"}
 
     element.add{type="line"}
 
@@ -170,7 +170,7 @@ function Interface.serverMod_page_content(player_index, element, page_name)
       type = "button",
       caption = {"Fed1sServerMod.fed1s_defender_button"},
       name = "fed1s_defender",
-      style = "serverMod_menu_button_primary"}
+      style = "server_mod_menu_button_primary"}
 
     element.add{type="line"}
 
@@ -186,7 +186,7 @@ function Interface.serverMod_page_content(player_index, element, page_name)
       type = "button",
       caption = {"Fed1sServerMod.fed1s_builder_button"},
       name = "fed1s_builder",
-      style = "serverMod_menu_button_primary"}
+      style = "server_mod_menu_button_primary"}
 
     --element.add{type="line"}
     --
@@ -209,30 +209,30 @@ function Interface.serverMod_page_content(player_index, element, page_name)
     --  type = "button",
     --  caption = {"Fed1sServerMod.fed1s_service_button"},
     --  name = "fed1s_service",
-    --  style = "serverMod_menu_button_primary"}
+    --  style = "server_mod_menu_button_primary"}
 
 
   end
 end
 
 -- Remote interface. Other mods can add menus the same way.
-remote.add_interface("serverMod", {
+remote.add_interface("server_mod", {
 
-  serverMod_menu = function(data) -- populates the menu
-    return Interface.serverMod_default_menu(data.player_index)
+  server_mod_menu = function(data) -- populates the menu
+    return Interface.server_mod_default_menu(data.player_index)
   end,
 
-  serverMod_page_content = function(data) -- provides cntent to a page
-    return Interface.serverMod_page_content(data.player_index, data.element, data.page_name)
+  server_mod_page_content = function(data) -- provides cntent to a page
+    return Interface.server_mod_page_content(data.player_index, data.element, data.page_name)
   end,
 
   --Called once per second, only use if you have timers on the page, avoid rebuilding the whole page
-  --serverMod_page_content_update = function(data)
-  --  return Interface.serverMod_page_content_update(
+  --server_mod_page_content_update = function(data)
+  --  return Interface.server_mod_page_content_update(
   --    data.page_name, data.player_index, data.element)
   --end,
 
-  serverMod_open_to_page = function(data) -- causes ServerMod to open to a specific page
+  server_mod_open_to_page = function(data) -- causes ServerMod to open to a specific page
     if data.player_index and data.interface and data.page_name then
       local player = game.get_player(data.player_index)
       if player then
