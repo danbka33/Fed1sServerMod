@@ -1,20 +1,20 @@
 local Interface = {}
 
-function Interface.informatron_default_menu(player_index)
+function Interface.serverMod_default_menu(player_index)
   return {
   }
 end
 
----Creates the contents of Informatron's own Informatron pages.
+---Creates the contents of ServerMod's own ServerMod pages.
 ---@param player_index uint Player index
 ---@param element LuaGuiElement Content scroll pane to place elements inside
 ---@param page_name string Page name
-function Interface.informatron_page_content(player_index, element, page_name)
+function Interface.serverMod_page_content(player_index, element, page_name)
   local player = game.get_player(player_index) --[[@as LuaPlayer]]
-  local currentPlayerData = Informatron.get_make_playerdata(player.index)
+  local currentPlayerData = ServerMod.get_make_playerdata(player.index)
 
   -- Main page
-  if page_name == "informatron" then
+  if page_name == "serverMod" then
 
     local warriorCount = 0
     local warriorCountOnline = 0
@@ -33,7 +33,7 @@ function Interface.informatron_page_content(player_index, element, page_name)
     local admins = ""
     local managers = ""
     for _, player in pairs(game.players) do
-      local playerData = Informatron.get_make_playerdata(player.index)
+      local playerData = ServerMod.get_make_playerdata(player.index)
       if player.connected then
         currentOnline = currentOnline + 1
       end
@@ -154,7 +154,7 @@ function Interface.informatron_page_content(player_index, element, page_name)
       type = "button",
       caption = {"Fed1sServerMod.fed1s_warrior_button"},
       name = "fed1s_warrior",
-      style = "informatron_menu_button_primary"}
+      style = "serverMod_menu_button_primary"}
 
     element.add{type="line"}
 
@@ -170,7 +170,7 @@ function Interface.informatron_page_content(player_index, element, page_name)
       type = "button",
       caption = {"Fed1sServerMod.fed1s_defender_button"},
       name = "fed1s_defender",
-      style = "informatron_menu_button_primary"}
+      style = "serverMod_menu_button_primary"}
 
     element.add{type="line"}
 
@@ -186,7 +186,7 @@ function Interface.informatron_page_content(player_index, element, page_name)
       type = "button",
       caption = {"Fed1sServerMod.fed1s_builder_button"},
       name = "fed1s_builder",
-      style = "informatron_menu_button_primary"}
+      style = "serverMod_menu_button_primary"}
 
     --element.add{type="line"}
     --
@@ -194,7 +194,7 @@ function Interface.informatron_page_content(player_index, element, page_name)
     --
     --local serviceManager = ""
     --for _, player in pairs(game.players) do
-    --  local playerData = Informatron.get_make_playerdata(player.index)
+    --  local playerData = ServerMod.get_make_playerdata(player.index)
     --  if playerData.role == "service" and player.permission_group.name == "Manager" then
     --    serviceManager = serviceManager .. player.name .. "   "
     --  end
@@ -209,34 +209,34 @@ function Interface.informatron_page_content(player_index, element, page_name)
     --  type = "button",
     --  caption = {"Fed1sServerMod.fed1s_service_button"},
     --  name = "fed1s_service",
-    --  style = "informatron_menu_button_primary"}
+    --  style = "serverMod_menu_button_primary"}
 
 
   end
 end
 
 -- Remote interface. Other mods can add menus the same way.
-remote.add_interface("informatron", {
+remote.add_interface("serverMod", {
 
-  informatron_menu = function(data) -- populates the menu
-    return Interface.informatron_default_menu(data.player_index)
+  serverMod_menu = function(data) -- populates the menu
+    return Interface.serverMod_default_menu(data.player_index)
   end,
 
-  informatron_page_content = function(data) -- provides cntent to a page
-    return Interface.informatron_page_content(data.player_index, data.element, data.page_name)
+  serverMod_page_content = function(data) -- provides cntent to a page
+    return Interface.serverMod_page_content(data.player_index, data.element, data.page_name)
   end,
 
   --Called once per second, only use if you have timers on the page, avoid rebuilding the whole page
-  --informatron_page_content_update = function(data)
-  --  return Interface.informatron_page_content_update(
+  --serverMod_page_content_update = function(data)
+  --  return Interface.serverMod_page_content_update(
   --    data.page_name, data.player_index, data.element)
   --end,
 
-  informatron_open_to_page = function(data) -- causes Informatron to open to a specific page
+  serverMod_open_to_page = function(data) -- causes ServerMod to open to a specific page
     if data.player_index and data.interface and data.page_name then
       local player = game.get_player(data.player_index)
       if player then
-        Informatron.open(player, {interface=data.interface, page_name=data.page_name})
+        ServerMod.open(player, {interface=data.interface, page_name=data.page_name})
       end
     end
   end

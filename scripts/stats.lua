@@ -3,7 +3,7 @@ local Stats = {
     name_overhead_stats_factor = "fed1s_factor",
     name_overhead_stats_count = "fed1s_count",
     name_overhead_search = "fed1s_search",
-    show_stats = "informatron-show-stats",
+    show_stats = "serverMod-show-stats",
 }
 
 local entity_types = {

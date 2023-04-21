@@ -6,19 +6,19 @@
 data:extend{
     {
         type = "bool-setting",
-        name = "informatron-show-overhead-button",
+        name = "serverMod-show-overhead-button",
         setting_type = "runtime-per-user",
         default_value = true,
     },
     {
         type = "bool-setting",
-        name = "informatron-show-message-on-center",
+        name = "serverMod-show-message-on-center",
         setting_type = "runtime-per-user",
         default_value = true,
     },
     {
         type = "bool-setting",
-        name = "informatron-show-stats",
+        name = "serverMod-show-stats",
         setting_type = "runtime-per-user",
         default_value = true,
     }

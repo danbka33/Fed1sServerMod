@@ -1,11 +1,11 @@
 ---@diagnostic disable-next-line
-informatron_menu_width = 250
+serverMod_menu_width = 250
 ---@diagnostic disable-next-line
-informatron_content_width = 940 -- inner width is informatron_content_width - 40 - 12
+serverMod_content_width = 940 -- inner width is serverMod_content_width - 40 - 12
 
 -- Used by fCPU, and possibly others
 ---@diagnostic disable-next-line
-function informatron_make_image(unique_name, filename, width, height)
+function serverMod_make_image(unique_name, filename, width, height)
   data.raw["gui-style"]["default"][unique_name] = {
     type = "button_style",
     width = width,
@@ -18,10 +18,10 @@ function informatron_make_image(unique_name, filename, width, height)
 end
 
 -- Used by Equipment Gantry
-data.raw["gui-style"]["default"]["informatron_image_container"] = {
+data.raw["gui-style"]["default"]["serverMod_image_container"] = {
   type = "frame_style",
   padding = 4,
-  width = informatron_content_width - 40 - 12,
+  width = serverMod_content_width - 40 - 12,
   graphical_set = {
     base = {
       corner_size = 8,
@@ -40,7 +40,7 @@ data.raw["gui-style"]["default"]["informatron_image_container"] = {
 }
 
 -- Used by SE
-data.raw["gui-style"]["default"]["informatron_close_button"] = {
+data.raw["gui-style"]["default"]["serverMod_close_button"] = {
   parent = "frame_button",
   size = 20,
   type = "button_style",
@@ -50,7 +50,7 @@ data.raw["gui-style"]["default"]["informatron_close_button"] = {
 }
 
 -- Used by SE
-data.raw["gui-style"]["default"]["informatron_inside_deep_frame"] = {
+data.raw["gui-style"]["default"]["serverMod_inside_deep_frame"] = {
   type = "frame_style",
   graphical_set = {
     base = {
@@ -77,23 +77,23 @@ data.raw["gui-style"]["default"]["informatron_inside_deep_frame"] = {
 
 local style = data.raw["gui-style"]["default"]
 
-style.informatron_root_frame = {
+style.serverMod_root_frame = {
   type = "frame_style",
   height = 800
 }
 
-style.informatron_titlebar_flow = {
+style.serverMod_titlebar_flow = {
   type = "horizontal_flow_style",
   horizontal_spacing = 8
 }
 
-style.informatron_titlebar_icon = {
+style.serverMod_titlebar_icon = {
   type = "image_style",
   size = 20,
   stretch_image_to_widget_size = true
 }
 
-style.informatron_drag_handle = {
+style.serverMod_drag_handle = {
   type = "empty_widget_style",
   parent = "draggable_space",
   horizontally_stretchable = "on",
@@ -102,24 +102,24 @@ style.informatron_drag_handle = {
   right_margin = 4
 }
 
-style.informatron_time_label = {
+style.serverMod_time_label = {
   type = "label_style",
   font = "default-small-semibold"
 }
 
-style.informatron_main_flow = {
+style.serverMod_main_flow = {
   type = "horizontal_flow_style",
   horizontal_spacing = 8
 }
 
-style.informatron_menu_frame = {
+style.serverMod_menu_frame = {
   type = "frame_style",
   parent = "inside_deep_frame",
-  width = informatron_menu_width,
+  width = serverMod_menu_width,
   vertically_stretchable = "stretch_and_expand"
 }
 
-style.informatron_menu_scroll_pane = {
+style.serverMod_menu_scroll_pane = {
   type = "scroll_pane_style",
   parent = "list_box_scroll_pane",
   horizontally_stretchable = "stretch_and_expand",
@@ -132,7 +132,7 @@ style.informatron_menu_scroll_pane = {
   },
 }
 
-style.informatron_menu_button = {
+style.serverMod_menu_button = {
   type = "button_style",
   font = "default-listbox",
   horizontal_align = "left",
@@ -164,16 +164,16 @@ style.informatron_menu_button = {
   }
 }
 
-style.informatron_menu_button_primary = {
+style.serverMod_menu_button_primary = {
   type = "button_style",
-  parent = "informatron_menu_button",
+  parent = "serverMod_menu_button",
   font = "default-bold",
   default_font_color = {255, 230,192},
 }
 
-style.informatron_menu_button_selected = {
+style.serverMod_menu_button_selected = {
   type = "button_style",
-  parent = "informatron_menu_button",
+  parent = "serverMod_menu_button",
   default_font_color = {0, 0, 0},
   hovered_font_color = {0, 0, 0},
   selected_clicked_font_color = {0, 0, 0},
@@ -189,21 +189,21 @@ style.informatron_menu_button_selected = {
   }
 }
 
-style.informatron_menu_button_primary_selected = {
+style.serverMod_menu_button_primary_selected = {
   type = "button_style",
-  parent = "informatron_menu_button_selected",
+  parent = "serverMod_menu_button_selected",
   font = "default-bold",
 }
 
-style.informatron_content_frame = {
+style.serverMod_content_frame = {
   type = "frame_style",
   parent = "inside_shallow_frame",
-  width = informatron_content_width,
+  width = serverMod_content_width,
   horizontally_stretchable = "on",
   vertically_stretchable = "on"
 }
 
-style.informatron_content_subheader_frame = {
+style.serverMod_content_subheader_frame = {
   type = "frame_style",
   parent = "subheader_frame",
   height = 56,
@@ -217,16 +217,16 @@ style.informatron_content_subheader_frame = {
   }
 }
 
-style.informatron_content_title = {
+style.serverMod_content_title = {
   type = "label_style",
   parent = "frame_title",
   font = "heading-2"
 }
 
-style.informatron_content_scroll_pane = {
+style.serverMod_content_scroll_pane = {
   type = "scroll_pane_style",
   parent = "naked_scroll_pane",
-  width = informatron_content_width,
+  width = serverMod_content_width,
   padding = 20,
   extra_padding_when_activated = 0,
   vertically_stretchable = "on"

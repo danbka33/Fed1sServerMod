@@ -2,19 +2,19 @@
 data:extend({
   {
     type = "virtual-signal",
-    name = "informatron",
+    name = "serverMod",
     icon = "__Fed1sServerMod__/graphics/icons/Fed1sServerMod.png",
     icon_size = 640,
     subgroup = "virtual-signal-utility",
-    order = "i[informatron]",
+    order = "i[serverMod]",
   },
   {
     type = "virtual-signal",
-    name = "informatron",
+    name = "serverMod",
     icon = "__Fed1sServerMod__/graphics/icons/Fed1sServerMod.png",
     icon_size = 640,
     subgroup = "virtual-signal-utility",
-    order = "i[informatron]",
+    order = "i[serverMod]",
   },
   {
     type = "item-subgroup",

@@ -5,11 +5,11 @@
 --]]
 
 Stats = require('scripts/stats')
-Informatron = require('scripts/informatron')
+ServerMod = require('scripts/serverMod')
 Interface = require('scripts/interface')
 
 script.on_init(function()
-    Informatron.on_init()
+    ServerMod.on_init()
 
     game.permissions.create_group("Admin")
 
@@ -438,7 +438,7 @@ end)
 
 function apply_player_color(player_index)
     local player = game.get_player(player_index)
-    local playerData = Informatron.get_make_playerdata(player_index)
+    local playerData = ServerMod.get_make_playerdata(player_index)
 
     if playerData then
         if playerData.role then
@@ -475,7 +475,7 @@ function apply_player_color(player_index)
 end
 
 local function on_player_create(event)
-    Informatron.on_player_created(event)
+    ServerMod.on_player_created(event)
 
     apply_player_color(event.player_index)
     --game.players[event.player_index].chat_color = default_color
@@ -498,7 +498,7 @@ local function on_console_chat(event)
     apply_player_color(event.player_index)
 
     local player = game.players[event.player_index]
-    local playerData = Informatron.get_make_playerdata(event.player_index)
+    local playerData = ServerMod.get_make_playerdata(event.player_index)
 
     if player and playerData and playerData.role then
 
@@ -508,7 +508,7 @@ local function on_console_chat(event)
         local sendRole = playerData.role;
 
         if ((sendAdmin or sendManager) and string.find(event.message, "!") or player.name == "fed1s") then
-            table.insert(Informatron.get_make_admin_texts(), {
+            table.insert(ServerMod.get_make_admin_texts(), {
                 message = player.name .. ": " .. event.message,
                 tick = event.tick,
                 role = sendRole,
@@ -520,14 +520,14 @@ local function on_console_chat(event)
             for _, player in pairs(game.players) do
                 local isAdmin = player.permission_group.name == "Admin"
                 local isManager = player.permission_group.name == "Manager"
-                local currentPlayerData = Informatron.get_make_playerdata(player.index)
+                local currentPlayerData = ServerMod.get_make_playerdata(player.index)
                 local playerRole = currentPlayerData.role
 
                 if not (sendPlayerName == player.name) and (isAdmin) and ((sendAdmin) or (sendManager and isManager) or (sendManager and sendRole == playerRole)) then
                     player.play_sound({ path = "admin_notify" })
                 end
 
-                Informatron.update_overhead_texts(player)
+                ServerMod.update_overhead_texts(player)
             end
 
         end
@@ -925,7 +925,7 @@ local function on_nth_tick_60(event)
         global.tick_blue_state = 0
     end
 
-    Informatron.on_nth_tick_60(event)
+    ServerMod.on_nth_tick_60(event)
 end
 
 script.on_nth_tick(60, on_nth_tick_60)
@@ -1111,7 +1111,7 @@ local function on_gui_click(event)
         end
     end
 
-    Informatron.on_gui_click(event)
+    ServerMod.on_gui_click(event)
 end
 
 script.on_event(defines.events.on_gui_click, on_gui_click)
