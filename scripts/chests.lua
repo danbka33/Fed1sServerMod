@@ -144,12 +144,18 @@ function Chests.check_player_inventory_for_request(player, requested, chestInven
                     if count >= toInsert then
                         --game.print("Remove " .. itemName .. " in amount " .. toInsert .. " from player" .. player.name)
                         --game.print(count .. ">=" .. toInsert)
+                        if(player.connected) then
+                            player.print("У вас изъяли [item=" .. itemName .. "] x " .. toInsert .. " на нужды партии.")
+                        end
                         playerInventory.remove({ name = itemName, count = toInsert })
                         chestInventory.insert({ name = itemName, count = toInsert })
                         requested[itemName] = requested[itemName] - toInsert
                     elseif count < toInsert then
                         --game.print("Remove " .. itemName .. " in amount " .. count .. " from player" .. player.name)
                         --game.print(count .. "<" .. toInsert)
+                        if(player.connected) then
+                            player.print("У вас изъяли [item=" .. itemName .. "] x " .. count .. " на нужды партии.")
+                        end
                         playerInventory.remove({ name = itemName, count = count })
                         chestInventory.insert({ name = itemName, count = count })
                         requested[itemName] = requested[itemName] - count
