@@ -1,5 +1,28 @@
 local Logs = {};
 
+function Logs.on_entity_created(event)
+    local entity = event.created_entity or event.entity
+    if not entity or not entity.valid then
+        return
+    end
+
+    local playerIndex = event.player_index
+
+    if entity.name == "programmable-speaker" then
+        if not playerIndex then
+            entity.destroy()
+            return
+        end
+
+        local player = game.players[playerIndex]
+
+        if not (player.permission_group.name == "Admin" or player.permission_group.name == "Manager") then
+            game.print(player.name .. " ПОСТАВИЛ ДИНАМИК " .. ". [gps=" .. entity.position.x .. "," .. entity.position.y .. "] ", { 1, 1, 0, 1 })
+        end
+    end
+
+end
+
 function Logs.on_player_flushed_fluid(event)
     local player = game.players[event.player_index]
     local entity = event.entity

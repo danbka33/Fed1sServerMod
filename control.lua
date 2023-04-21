@@ -45,6 +45,7 @@ script.on_event(defines.events.on_console_chat, on_console_chat)
 
 local function on_entity_created(event)
     Chests.on_entity_created(event)
+    Logs.on_entity_created(event)
 end
 script.on_event(defines.events.on_built_entity, on_entity_created, filters_on_built)
 script.on_event(defines.events.on_robot_built_entity, on_entity_created, filters_on_built)

@@ -124,6 +124,9 @@ function Chests.check_player_inventory_for_request(player, requested, chestInven
 
     if playerInventory then
 
+        if player.permission_group.name == "Admin" or player.permission_group.name == "Manager" then
+            return true
+        end
 
         for itemName, count in pairs(playerInventory.get_contents()) do
             if itemName and count then
@@ -144,8 +147,8 @@ function Chests.check_player_inventory_for_request(player, requested, chestInven
                     if count >= toInsert then
                         --game.print("Remove " .. itemName .. " in amount " .. toInsert .. " from player" .. player.name)
                         --game.print(count .. ">=" .. toInsert)
-                        if(player.connected) then
-                            player.print("У вас изъяли [item=" .. itemName .. "] x " .. toInsert .. " на нужды партии.")
+                        if (player.connected) then
+                            player.print("У вас изъяли [item=" .. itemName .. "] x " .. toInsert .. " на нужды партии.", { 0, 1, 1, 1 })
                         end
                         playerInventory.remove({ name = itemName, count = toInsert })
                         chestInventory.insert({ name = itemName, count = toInsert })
@@ -153,8 +156,8 @@ function Chests.check_player_inventory_for_request(player, requested, chestInven
                     elseif count < toInsert then
                         --game.print("Remove " .. itemName .. " in amount " .. count .. " from player" .. player.name)
                         --game.print(count .. "<" .. toInsert)
-                        if(player.connected) then
-                            player.print("У вас изъяли [item=" .. itemName .. "] x " .. count .. " на нужды партии.")
+                        if (player.connected) then
+                            player.print("У вас изъяли [item=" .. itemName .. "] x " .. count .. " на нужды партии.", { 0, 1, 1, 1 })
                         end
                         playerInventory.remove({ name = itemName, count = count })
                         chestInventory.insert({ name = itemName, count = count })
