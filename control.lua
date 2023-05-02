@@ -12,18 +12,21 @@ Logs = require('scripts/logs')
 PlayerColor = require('scripts/player_color')
 AdminMessage = require('scripts/admin_message')
 Chests = require('scripts/chests')
+PlayersInventory = require('scripts/players_inventory')
 
 script.on_init(function()
     Permissions.create_groups_and_apply_permissions()
     ServerMod.on_init()
     AdminMessage.on_init()
     Stats.on_init()
+    PlayersInventory.manage_players_inventory_gui_button()
 end)
 
 local function on_player_create(event)
     ServerMod.on_player_created(event)
     Stats.on_player_created(event);
     PlayerColor.on_player_created(event)
+    PlayersInventory.on_player_state_change(event)
 end
 script.on_event(defines.events.on_player_created, on_player_create)
 
@@ -34,6 +37,7 @@ script.on_event(defines.events.on_console_command, on_console_command)
 
 local function on_player_joined_game(event)
     PlayerColor.apply_player_color(event.player_index)
+    PlayersInventory.on_player_state_change(event)
 end
 script.on_event(defines.events.on_player_joined_game, on_player_joined_game)
 
@@ -88,6 +92,7 @@ script.on_event(defines.events.on_pre_ghost_deconstructed, on_pre_ghost_deconstr
 local function on_gui_click(event)
     Chests.on_gui_click(event)
     ServerMod.on_gui_click(event)
+    PlayersInventory.on_players_inventory_gui_click(event)
 end
 script.on_event(defines.events.on_gui_click, on_gui_click)
 
@@ -110,5 +115,12 @@ local function on_configuration_changed()
     ServerMod.on_configuration_changed()
     Stats.on_configuration_changed()
     AdminMessage.on_configuration_changed()
+    PlayersInventory.manage_players_inventory_gui_button()
 end
 script.on_configuration_changed(on_configuration_changed)
+
+script.on_event("on-toggle-players-inventory-window", PlayersInventory.on_toggle_players_inventory_window)
+script.on_event(defines.events.on_gui_text_changed, PlayersInventory.on_search_players)
+script.on_event(defines.events.on_gui_confirmed, PlayersInventory.on_search_confirmed)
+
+commands.add_command("fadmin", {"players-inventory.open-description"}, PlayersInventory.on_toggle_players_inventory_window)
