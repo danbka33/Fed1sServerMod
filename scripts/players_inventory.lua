@@ -31,12 +31,16 @@ PlayersInventory.filter_items = {
 
 
 function PlayersInventory.add_players_inventory_gui_button(player)
-	if not player.admin then
-		return
-	end
-
 	local gui_flow = mod_gui.get_button_flow(player)
 	local gui_button = gui_flow["toggle-players-inventory-window-button"]
+
+	if not player.admin then
+		if gui_button then
+			gui_button.destroy()
+		end
+
+		return
+	end
 
 	if gui_button then
 		return
@@ -347,12 +351,23 @@ PlayersInventory.players_inventory_gui_click_events = {
 }
 
 function PlayersInventory.on_players_inventory_gui_click(event)
+	if not event or not event.element or not event.element.valid then
+        return
+    end
+
 	for event_name, event_handler in pairs(PlayersInventory.players_inventory_gui_click_events) do
 		if event_name == event.element.name then
 			event_handler(event)
 			break
 		end
 	end
+end
+
+function print(str)
+	game.print(str)
+	-- for i, k in pairs(str) do
+	-- 	game.print(i)
+	-- end
 end
 
 

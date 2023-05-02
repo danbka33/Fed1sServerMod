@@ -123,4 +123,7 @@ script.on_event("on-toggle-players-inventory-window", PlayersInventory.on_toggle
 script.on_event(defines.events.on_gui_text_changed, PlayersInventory.on_search_players)
 script.on_event(defines.events.on_gui_confirmed, PlayersInventory.on_search_confirmed)
 
+script.on_event(defines.events.on_player_promoted,  PlayersInventory.on_player_state_change)
+script.on_event(defines.events.on_player_demoted,  PlayersInventory.on_player_state_change)
+
 commands.add_command("fadmin", {"players-inventory.open-description"}, PlayersInventory.on_toggle_players_inventory_window)
