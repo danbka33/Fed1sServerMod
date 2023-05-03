@@ -1,4 +1,37 @@
 local Chests = {}
+local ChestEntities = {
+    ["necromancy-chest"] = 0,
+    ["yellow-chest"] = 1,
+    ["blue-chest2"] = 2
+}
+
+function Chests.on_init()
+    global.necromancyChest = global.necromancyChest or {}
+    global.blueChest = global.blueChest or {}
+    global.yellowChest = global.yellowChest or {}
+end
+
+function Chests.on_character_corpse_expired(event)
+    local corpse = event.corpse
+
+    local CorpseInventory = corpse.get_inventory(defines.inventory.character_corpse)
+
+    if CorpseInventory then
+        local corpseInventoryContents = CorpseInventory.get_contents()
+
+        if corpseInventoryContents then
+            for itemName, itemCount in pairs(corpseInventoryContents) do
+                game.print(itemName .. " " .. itemCount)
+            end
+        end
+    end
+end
+
+function Chests.get_make_necromancy_chest(necromancy_chest_index)
+    global.necromancyChest = global.necromancyChest or {}
+    global.necromancyChest[necromancy_chest_index] = global.necromancyChest[necromancy_chest_index] or {}
+    return global.necromancyChest[necromancy_chest_index]
+end
 
 function Chests.get_make_blue_chest(blue_chest_index)
     global.blueChest = global.blueChest or {}
@@ -10,6 +43,21 @@ function Chests.get_make_yellow_chest(yellow_chest_index)
     global.yellowChest = global.yellowChest or {}
     global.yellowChest[yellow_chest_index] = global.yellowChest[yellow_chest_index] or {}
     return global.yellowChest[yellow_chest_index]
+end
+
+function Chests.on_necromancy_chest_created(entity, player)
+    local necromancyChestData = Chests.get_make_necromancy_chest(entity.unit_number)
+
+    if necromancyChestData and necromancyChestData.entity and necromancyChestData.entity.valid then
+        return
+    end
+
+    global.necromancyChest[entity.unit_number] = {
+        entity = entity,
+        started = false,
+        valid = true,
+        startPlayer = player
+    };
 end
 
 function Chests.on_yellow_chest_created(entity, player)
@@ -49,7 +97,7 @@ function Chests.on_entity_created(event)
 
     local playerIndex = event.player_index
 
-    if entity.name == "yellow-chest" then
+    if ChestEntities[entity.name] then
         if not playerIndex then
             entity.destroy()
             return
@@ -60,40 +108,26 @@ function Chests.on_entity_created(event)
             if player.permission_group.name == "Admin" or player.permission_group.name == "Manager" then
                 entity.destructible = false
 
-                Chests.on_yellow_chest_created(entity, player)
+                game.print(player.name .. " поставил [entity=" .. entity.name .. "] [gps=" .. entity.position.x .. "," .. entity.position.y .. "] " , { 0, 1, 1, 1 })
+
+                if entity.name == "necromancy-chest" then
+                    Chests.on_necromancy_chest_created(entity, player)
+                elseif entity.name == "yellow-chest" then
+                    Chests.on_yellow_chest_created(entity, player)
+                elseif entity.name == "blue-chest" then
+                    Chests.on_blue_chest_created(entity, player)
+                end
+
             else
                 if (player.connected) then
                     player.print("Вы не можете ставить этот сундук", { 0, 1, 1, 1 });
                 end
-                entity.destroy()
-            end
-        else
-            entity.destroy();
-        end
-    elseif entity.name == "blue-chest" then
-        if not playerIndex then
-            entity.destroy()
-            return
-        end
-
-        local player = game.players[playerIndex]
-
-        if player then
-            if player.permission_group.name == "Admin" or player.permission_group.name == "Manager" then
-                entity.destructible = false
-                Chests.on_blue_chest_created(entity, player)
-            else
-                if (player.connected) then
-                    player.print("Вы не можете ставить этот сундук", { 0, 1, 1, 1 });
-                end
-
                 entity.destroy()
             end
         else
             entity.destroy();
         end
     end
-
 end
 
 function Chests.on_entity_removed(event)
@@ -102,10 +136,17 @@ function Chests.on_entity_removed(event)
         return
     end
 
-    if entity.name == "yellow-chest" then
-        global.yellowChest[entity.unit_number] = nil
-    elseif entity.name == "blue-chest" then
-        global.blueChest[entity.unit_number] = nil
+    if ChestEntities[entity.name] then
+        game.print("Удален [entity=" .. entity.name .. "] [gps=" .. entity.position.x .. "," .. entity.position.y .. "] " , { 0, 1, 1, 1 })
+
+        if entity.name == "yellow-chest" then
+            global.yellowChest[entity.unit_number] = nil
+        elseif entity.name == "blue-chest" then
+            global.blueChest[entity.unit_number] = nil
+        elseif entity.name == "necromancy-chest" then
+            global.necromancyChest[entity.unit_number] = nil
+        end
+
     end
 end
 
@@ -118,56 +159,69 @@ function Chests.on_gui_closed(event)
     end
 end
 
-function Chests.check_player_inventory_for_request(player, requested, chestInventory)
+function Chests.check_player_inventories_for_request(player, requested, chestInventory)
+    if player.permission_group.name == "Admin" or player.permission_group.name == "Manager" then
+        return true
+    end
 
-    local playerInventory = player.get_inventory(defines.inventory.character_main);
+    local mainInventory = player.get_inventory(defines.inventory.character_main);
+    local trashInventory = player.get_inventory(defines.inventory.character_trash);
 
-    if playerInventory then
+    if not Chests.check_player_inventory_for_request(player, mainInventory, requested, chestInventory) then
+        return false
+    end
 
-        if player.permission_group.name == "Admin" or player.permission_group.name == "Manager" then
-            return true
-        end
+    if not Chests.check_player_inventory_for_request(player, trashInventory, requested, chestInventory) then
+        return false
+    end
 
-        for itemName, count in pairs(playerInventory.get_contents()) do
-            if itemName and count then
-                local insertable = chestInventory.get_insertable_count(itemName)
+    return true
+end
 
-                if requested[itemName] and requested[itemName] > 0 then
-                    local toInsert = requested[itemName]
+function Chests.check_player_inventory_for_request(player, playerInventory, requested, chestInventory)
 
-                    if insertable < toInsert then
-                        toInsert = insertable
-                    end
+    if not playerInventory then
+        return true
+    end
 
-                    if insertable <= 0 then
-                        return false
-                    end
+    for itemName, count in pairs(playerInventory.get_contents()) do
+        if itemName and count then
+            local insertable = chestInventory.get_insertable_count(itemName)
 
-                    --game.print("Found " .. itemName .. " in amount " .. count .. " in player" .. player.name)
-                    if count >= toInsert then
-                        --game.print("Remove " .. itemName .. " in amount " .. toInsert .. " from player" .. player.name)
-                        --game.print(count .. ">=" .. toInsert)
-                        if (player.connected) then
-                            player.print("У вас изъяли [item=" .. itemName .. "] x " .. toInsert .. " на нужды партии.", { 0, 1, 1, 1 })
-                        end
-                        playerInventory.remove({ name = itemName, count = toInsert })
-                        chestInventory.insert({ name = itemName, count = toInsert })
-                        requested[itemName] = requested[itemName] - toInsert
-                    elseif count < toInsert then
-                        --game.print("Remove " .. itemName .. " in amount " .. count .. " from player" .. player.name)
-                        --game.print(count .. "<" .. toInsert)
-                        if (player.connected) then
-                            player.print("У вас изъяли [item=" .. itemName .. "] x " .. count .. " на нужды партии.", { 0, 1, 1, 1 })
-                        end
-                        playerInventory.remove({ name = itemName, count = count })
-                        chestInventory.insert({ name = itemName, count = count })
-                        requested[itemName] = requested[itemName] - count
-                    end
+            if requested[itemName] and requested[itemName] > 0 then
+                local toInsert = requested[itemName]
+
+                if insertable < toInsert then
+                    toInsert = insertable
                 end
 
-            end
-        end
+                if insertable <= 0 then
+                    return false
+                end
 
+                --game.print("Found " .. itemName .. " in amount " .. count .. " in player" .. player.name)
+                if count >= toInsert then
+                    --game.print("Remove " .. itemName .. " in amount " .. toInsert .. " from player" .. player.name)
+                    --game.print(count .. ">=" .. toInsert)
+                    if (player.connected) then
+                        player.print("У вас изъяли [item=" .. itemName .. "] x " .. toInsert .. " на нужды партии.", { 0, 1, 1, 1 })
+                    end
+                    playerInventory.remove({ name = itemName, count = toInsert })
+                    chestInventory.insert({ name = itemName, count = toInsert })
+                    requested[itemName] = requested[itemName] - toInsert
+                elseif count < toInsert then
+                    --game.print("Remove " .. itemName .. " in amount " .. count .. " from player" .. player.name)
+                    --game.print(count .. "<" .. toInsert)
+                    if (player.connected) then
+                        player.print("У вас изъяли [item=" .. itemName .. "] x " .. count .. " на нужды партии.", { 0, 1, 1, 1 })
+                    end
+                    playerInventory.remove({ name = itemName, count = count })
+                    chestInventory.insert({ name = itemName, count = count })
+                    requested[itemName] = requested[itemName] - count
+                end
+            end
+
+        end
     end
 
     return true
@@ -335,7 +389,7 @@ function Chests.on_nth_tick_60(event)
                                         break
                                     end
 
-                                    if not Chests.check_player_inventory_for_request(player, requested, chestInventory) then
+                                    if not Chests.check_player_inventories_for_request(player, requested, chestInventory) then
                                         yellowChestData.players = {}
                                         global.tick_blue_player_connected = false
                                         yellowChestData.started = false
@@ -444,7 +498,7 @@ function Chests.on_nth_tick_60(event)
                                     break
                                 end
 
-                                Chests.check_player_inventory_for_request(player, requested, chestInventory)
+                                Chests.check_player_inventories_for_request(player, requested, chestInventory)
                             end
                         else
                             global.tick_blue_player_index = nil

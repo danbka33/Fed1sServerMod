@@ -7,26 +7,28 @@
 Permissions = require('scripts/permissions')
 Stats = require('scripts/stats')
 ServerMod = require('scripts/server_mod')
+PlayersInventory = require('scripts/players_inventory')
 Interface = require('scripts/interface')
 Logs = require('scripts/logs')
 PlayerColor = require('scripts/player_color')
 AdminMessage = require('scripts/admin_message')
 Chests = require('scripts/chests')
-PlayersInventory = require('scripts/players_inventory')
 
 script.on_init(function()
     Permissions.create_groups_and_apply_permissions()
     ServerMod.on_init()
     AdminMessage.on_init()
     Stats.on_init()
+    Chests.on_init()
     PlayersInventory.manage_players_inventory_gui_button()
 end)
 
 local function on_player_create(event)
     ServerMod.on_player_created(event)
+    PlayersInventory.on_player_state_change(event)
     Stats.on_player_created(event);
     PlayerColor.on_player_created(event)
-    PlayersInventory.on_player_state_change(event)
+
 end
 script.on_event(defines.events.on_player_created, on_player_create)
 
@@ -62,6 +64,35 @@ script.on_event(defines.events.on_pre_player_mined_item, on_entity_removed, filt
 script.on_event(defines.events.on_robot_pre_mined, on_entity_removed, filters_on_mined)
 script.on_event(defines.events.on_entity_died, on_entity_removed, filters_on_mined)
 script.on_event(defines.events.script_raised_destroy, on_entity_removed)
+
+local function on_character_corpse_expired(event)
+    Chests.on_character_corpse_expired(event)
+end
+script.on_event(defines.events.on_character_corpse_expired, on_character_corpse_expired)
+
+--local function on_post_entity_died(event)
+--    local prototype = event.prototype
+--    local corpses = event.corpses
+--
+--    for _, corpse in pairs(corpses) do
+--        game.print(_)
+--        game.print(corpse)
+--        local mainInventory = corpse.get_inventory(defines.inventory.character_corpse)
+--
+--        if mainInventory then
+--            game.print("mainInventory")
+--            local mainInventoryContents = mainInventory.get_contents()
+--
+--            if mainInventoryContents then
+--                game.print("mainInventoryContents")
+--                for itemName, itemCount in pairs(mainInventoryContents) do
+--                    game.print(itemName .. " " .. itemCount)
+--                end
+--            end
+--        end
+--    end
+--end
+--script.on_event(defines.events.on_post_entity_died, on_post_entity_died)
 
 local function on_gui_closed(event)
     Chests.on_gui_closed(event)
@@ -123,7 +154,7 @@ script.on_event("on-toggle-players-inventory-window", PlayersInventory.on_toggle
 script.on_event(defines.events.on_gui_text_changed, PlayersInventory.on_search_players)
 script.on_event(defines.events.on_gui_confirmed, PlayersInventory.on_search_confirmed)
 
-script.on_event(defines.events.on_player_promoted,  PlayersInventory.on_player_state_change)
-script.on_event(defines.events.on_player_demoted,  PlayersInventory.on_player_state_change)
+script.on_event(defines.events.on_player_promoted, PlayersInventory.on_player_state_change)
+script.on_event(defines.events.on_player_demoted, PlayersInventory.on_player_state_change)
 
-commands.add_command("fadmin", {"players-inventory.open-description"}, PlayersInventory.on_toggle_players_inventory_window)
+commands.add_command("fadmin", { "players-inventory.open-description" }, PlayersInventory.on_toggle_players_inventory_window)

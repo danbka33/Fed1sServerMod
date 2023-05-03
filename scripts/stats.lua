@@ -1,6 +1,8 @@
 local mod_gui = require("__core__/lualib/mod-gui")
 local Stats = {
     name_overhead_stats_factor = "fed1s_factor",
+    name_overhead_stats_flow = "fed1s_flow_text",
+    name_overhead_stats_online_count = "fed1s_online_count",
     name_overhead_stats_count = "fed1s_count",
     name_overhead_in_search = "server_mod_in_search",
     name_overhead_in_search_details = "server_mod_in_search_details",
@@ -93,19 +95,15 @@ function Stats.update_overhead_stat(player)
         return
     end
 
-    local statFactor = button_flow[Stats.name_overhead_stats_count]
-    local statCount = button_flow[Stats.name_overhead_stats_factor]
+    local statFlow = button_flow[Stats.name_overhead_stats_flow]
     local searchPlate = button_flow[Stats.name_overhead_in_search]
 
     if not player.mod_settings[Stats.show_stats].value then
-        if statFactor then
-            statFactor.destroy()
-        end
-        if statCount then
-            statCount.destroy()
-        end
         if searchPlate then
             searchPlate.destroy()
+        end
+        if statFlow then
+            statFlow.destroy()
         end
         return
     end
@@ -177,29 +175,60 @@ function Stats.update_overhead_stat(player)
         end
     end
 
-    if not statCount then
+    if not statFlow then
         button_flow.add {
-            type = "frame",
-            direction = "horizontal",
+            type = "flow",
+            direction = "vertical",
+            name = Stats.name_overhead_stats_flow
+        }
+        statFlow = button_flow[Stats.name_overhead_stats_flow]
+        statFlow.style.right_margin = 20
+        statFlow.style.left_margin = 20
+    end
+
+    local statFactor = statFlow[Stats.name_overhead_stats_count]
+    local statCount = statFlow[Stats.name_overhead_stats_factor]
+    local onlineCount = statFlow[Stats.name_overhead_stats_online_count]
+
+    if not statCount then
+        statFlow.add {
+            type = "label",
             name = Stats.name_overhead_stats_count,
             caption = { "Fed1sServerMod.kill_count", eveFactor }
         }
-        statCount = button_flow[Stats.name_overhead_stats_factor]
+        statCount = statFlow[Stats.name_overhead_stats_factor]
     else
         statCount.caption = { "Fed1sServerMod.kill_count", biter_count }
     end
 
     if not statFactor then
-        button_flow.add {
-            type = "frame",
-            direction = "horizontal",
+        statFlow.add {
+            type = "label",
             name = Stats.name_overhead_stats_factor,
             caption = { "Fed1sServerMod.evo_factor", biter_count }
         }
-        statFactor = button_flow[Stats.name_overhead_stats_count]
+        statFactor = statFlow[Stats.name_overhead_stats_count]
     else
         statFactor.caption = { "Fed1sServerMod.evo_factor", eveFactor }
     end
+
+    local playerCount = 0;
+
+    for _, player in pairs(game.connected_players) do
+        playerCount = playerCount + 1;
+    end
+
+    if not onlineCount then
+        statFlow.add {
+            type = "label",
+            name = Stats.name_overhead_stats_online_count,
+            caption = { "Fed1sServerMod.top_player_connected", playerCount }
+        }
+        onlineCount = statFlow[Stats.name_overhead_stats_count]
+    else
+        onlineCount.caption = { "Fed1sServerMod.top_player_connected", playerCount }
+    end
+
 end
 
 return Stats

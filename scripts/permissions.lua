@@ -408,19 +408,19 @@ function Permissions.create_groups_and_apply_permissions()
     --game.permissions.get_group("Admin").add_player("fed1s")
     --game.permissions.get_group("Admin").add_player("danbka33")
 
-    game.permissions.get_group("Default").set_allows_action(defines.input_action.cancel_research, false)
-    game.permissions.get_group("Default").set_allows_action(defines.input_action.toggle_map_editor, false)
-    game.permissions.get_group("Default").set_allows_action(defines.input_action.set_player_color, false)
-    game.permissions.get_group("Default").set_allows_action(defines.input_action.open_technology_gui, false)
-    game.permissions.get_group("Default").set_allows_action(defines.input_action.edit_permission_group, false)
-    game.permissions.get_group("Default").set_allows_action(defines.input_action.admin_action, false)
-
-    game.permissions.get_group("Manager").set_allows_action(defines.input_action.cancel_research, false)
-    game.permissions.get_group("Manager").set_allows_action(defines.input_action.toggle_map_editor, false)
-    game.permissions.get_group("Manager").set_allows_action(defines.input_action.set_player_color, false)
-    game.permissions.get_group("Manager").set_allows_action(defines.input_action.open_technology_gui, false)
-    game.permissions.get_group("Manager").set_allows_action(defines.input_action.edit_permission_group, false)
-    game.permissions.get_group("Manager").set_allows_action(defines.input_action.admin_action, false)
+    --game.permissions.get_group("Default").set_allows_action(defines.input_action.cancel_research, false)
+    --game.permissions.get_group("Default").set_allows_action(defines.input_action.toggle_map_editor, false)
+    --game.permissions.get_group("Default").set_allows_action(defines.input_action.set_player_color, false)
+    --game.permissions.get_group("Default").set_allows_action(defines.input_action.open_technology_gui, false)
+    --game.permissions.get_group("Default").set_allows_action(defines.input_action.edit_permission_group, false)
+    --game.permissions.get_group("Default").set_allows_action(defines.input_action.admin_action, false)
+    --
+    --game.permissions.get_group("Manager").set_allows_action(defines.input_action.cancel_research, false)
+    --game.permissions.get_group("Manager").set_allows_action(defines.input_action.toggle_map_editor, false)
+    --game.permissions.get_group("Manager").set_allows_action(defines.input_action.set_player_color, false)
+    --game.permissions.get_group("Manager").set_allows_action(defines.input_action.open_technology_gui, false)
+    --game.permissions.get_group("Manager").set_allows_action(defines.input_action.edit_permission_group, false)
+    --game.permissions.get_group("Manager").set_allows_action(defines.input_action.admin_action, false)
 end
 
 return Permissions;

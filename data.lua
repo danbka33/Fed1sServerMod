@@ -1,3 +1,5 @@
+radar_range = settings.startup["passive-radar-range"].value
+
 require("prototypes/input")
 require("prototypes/shortcut")
 require("prototypes/signal")

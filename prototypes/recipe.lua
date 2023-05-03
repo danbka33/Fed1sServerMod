@@ -1,4 +1,12 @@
+local recipe_radar_passive = util.table.deepcopy(data.raw.recipe["radar"])
+recipe_radar_passive.name = "radar-passive"
+recipe_radar_passive.enabled = true
+recipe_radar_passive.result = "radar-passive"
+
+data.raw.recipe["radar"].enabled = false
+
 data:extend({
+    recipe_radar_passive,
     {
         type = "recipe",
         name = "yellow-chest",
