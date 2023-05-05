@@ -1,10 +1,26 @@
 local Permissions = {}
 
 function Permissions.create_groups_and_apply_permissions()
-    game.permissions.create_group("Admin")
 
-    game.permissions.create_group("PickRole")
-    game.permissions.create_group("Banned")
+    if not game.permissions.get_group("Admin") then
+        game.permissions.create_group("Admin")
+    end
+
+    if not game.permissions.get_group("PickRole") then
+        game.permissions.create_group("PickRole")
+    end
+    if not game.permissions.get_group("Banned") then
+        game.permissions.create_group("Banned")
+    end
+
+    if not game.permissions.get_group("Manager") then
+        game.permissions.create_group("Manager")
+    end
+
+    if(not game.is_multiplayer()) then
+        game.print("Игра запущена не в режиме мультиплеера. Пропускаем настройку прав.", {1,1,0,1})
+        return
+    end
 
     game.permissions.get_group("PickRole").set_allows_action(defines.input_action.activate_cut, false)
     game.permissions.get_group("PickRole").set_allows_action(defines.input_action.activate_paste, false)
@@ -404,7 +420,7 @@ function Permissions.create_groups_and_apply_permissions()
     game.permissions.get_group("Banned").set_allows_action(defines.input_action.wire_dragging, false)
     game.permissions.get_group("Banned").set_allows_action(defines.input_action.write_to_console, false)
 
-    game.permissions.create_group("Manager")
+
     --game.permissions.get_group("Admin").add_player("fed1s")
     --game.permissions.get_group("Admin").add_player("danbka33")
 
