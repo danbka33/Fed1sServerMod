@@ -151,8 +151,9 @@ end
 script.on_configuration_changed(on_configuration_changed)
 
 script.on_event("on-toggle-players-inventory-window", PlayersInventory.on_toggle_players_inventory_window)
-script.on_event(defines.events.on_gui_text_changed, PlayersInventory.on_search_players)
-script.on_event(defines.events.on_gui_confirmed, PlayersInventory.on_search_confirmed)
+script.on_event(defines.events.on_gui_text_changed, PlayersInventory.on_change_filters)
+script.on_event(defines.events.on_gui_switch_state_changed, PlayersInventory.on_change_filters)
+script.on_event(defines.events.on_gui_selection_state_changed, PlayersInventory.on_change_filters)
 
 script.on_event(defines.events.on_player_promoted, PlayersInventory.on_player_state_change)
 script.on_event(defines.events.on_player_demoted, PlayersInventory.on_player_state_change)

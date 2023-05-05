@@ -1,7 +1,9 @@
--- Copyright (c) 2022 Ajick
+-- Copyright (c) 2023 Ajick
 
 local event_handler = require("__core__/lualib/event_handler")
 local mod_gui = require("__core__/lualib/mod-gui")
+
+local get_make_playerdata = require("__Fed1sServerMod__/scripts/server_mod").get_make_playerdata
 
 
 local PlayersInventory = {}
@@ -28,6 +30,8 @@ PlayersInventory.filter_items = {
 	"power-armor",
 	"power-armor-mk2"
 }
+
+PlayersInventory.filter_roles = {"warrior", "defender", "builder"} -- , "service"
 
 
 function PlayersInventory.add_players_inventory_gui_button(player)
@@ -64,6 +68,8 @@ function PlayersInventory.build_players_inventory_window(player)
 	local window = player.gui.screen.add{type="frame", name="players-inventory-window", direction="vertical"}
 	window.style.maximal_height = 800
 
+
+	-- Header --------------------------------------------------------------------------------------------------------------
 	local titlebar = window.add{type="flow", direction="horizontal"}
 	titlebar.drag_target = window
 
@@ -74,20 +80,6 @@ function PlayersInventory.build_players_inventory_window(player)
 	spacer.style.height = 24
 	spacer.style.left_margin = 4
 	spacer.style.right_margin=4
-
-	local search_field = titlebar.add{type="textfield", name="search-player-textfield", style="titlebar_search_textfield"}
-	search_field.style.width = 125
-	search_field.style.height = 27
-	search_field.visible = false
-
-	titlebar.add{
-		type = "sprite-button",
-		name = "search-player-button",
-		sprite = "utility/search_white",
-		hovered_sprite = "utility/search_black",
-		clicked_sprite = "utility/search_black",
-		style = "frame_action_button"
-	}
 	
 	titlebar.add{
 		type = "sprite-button",
@@ -98,8 +90,49 @@ function PlayersInventory.build_players_inventory_window(player)
 		style = "frame_action_button"
 	}
 
+
+	-- Filters -------------------------------------------------------------------------------------------------------------
+	local filter_flow = window.add{type="flow", name="filters-flow", direction="horizontal"}
+	filter_flow.style.top_margin = 3
+
+	filter_flow.add{
+		type = "switch",
+		name = "filter-connected",
+		allow_none_state = true,
+		switch_state = "left",
+		left_label_caption={"players-inventory.caption-online"},
+		right_label_caption={"players-inventory.caption-offline"}
+	}
+	
+	local roles = {
+		{"players-inventory.caption-all"},
+		{"players-inventory.caption-warriors"},
+		{"players-inventory.caption-defenders"},
+		{"players-inventory.caprion-builders"}
+	}
+	-- {"players-inventory.caption-service"}
+
+	local filter_roles = filter_flow.add{type="drop-down", name="filter-role", items=roles, selected_index=1}
+	filter_roles.style.left_margin = 10
+	filter_roles.style.top_margin = -3
+
+
+	local spacer = filter_flow.add{type="empty-widget", ignored_by_interaction=true}
+	spacer.style.horizontally_stretchable = "on"
+
+	local search_icon = filter_flow.add{
+		type = "sprite",
+		sprite = "utility/search_white"
+	}
+	search_icon.style.top_margin = 3
+
+	local search_field = filter_flow.add{type="textfield", name="filter-search"}
+	search_field.style.width = 125
+	search_field.style.top_margin = -4
+	
+	
+	-- Empty placeholder ---------------------------------------------------------------------------------------------------
 	local empty_flow = window.add{type="flow", name="empty-flow", direction="vertical"}
-	-- local empty_flow = window.add{type="frame", name="empty-flow", direction="vertical"}
 	empty_flow.style.width = 468
 	empty_flow.style.height = 150
 	empty_flow.style.horizontal_align = "center"
@@ -107,56 +140,161 @@ function PlayersInventory.build_players_inventory_window(player)
 	empty_flow.visible = false
 
 	empty_flow.add{type="sprite", sprite="utility/ghost_time_to_live_modifier_icon"}
-	empty_flow.add{type="label", caption={"players-inventory.empty-caption"}, style="inventory_label"}
+	empty_flow.add{type="label", caption={"players-inventory.caption-empty"}, style="inventory_label"}
+
 	
-	window.add{type="scroll-pane", name="main-flow", direction="vertical"}
+	-- Players list --------------------------------------------------------------------------------------------------------
+	local main_flow = window.add{type="scroll-pane", name="main-flow", direction="vertical"}
+	main_flow.style.top_margin = 3
+
+	local count_flow = window.add{type="flow", name="count-flow", direction="horizontal"}
+	count_flow.style.top_margin = 5
+	count_flow.visible = false
+
+	local count = count_flow.add{type="label", name="count", style="subheader_caption_label"}
+	count.style.left_margin = -8
 
 	return window
+end
+
+function PlayersInventory.build_players_inventory_list(window)
+	local players_list = window["main-flow"]
+	local filters = window["filters-flow"]
+	local connected_state = filters["filter-connected"].switch_state
+	local role_index = filters["filter-role"].selected_index
+	local search_name = string.lower(filters["filter-search"].text)
+	local count = 0
+
+	for _, panel in pairs(players_list.children) do
+		panel.destroy()
+	end
+
+	for _, player in pairs(game.players) do
+		if player.admin then
+			goto continue
+		end
+
+		if connected_state
+		and (connected_state == "left" and not player.connected)
+		or (connected_state == "right" and player.connected) then
+			goto continue
+		end
+
+		local playerdata = get_make_playerdata(player.index)
+
+		if role_index ~= 1 and playerdata.role ~= PlayersInventory.filter_roles[role_index-1] then
+			goto continue
+		end
+
+		if search_name and not string.find(string.lower(player.name), search_name) then
+			goto continue
+		end
+
+		for i=1, 15 do
+			PlayersInventory.build_player_inventory_panel(window, player)
+		end
+
+		count = count + 1
+
+		::continue::
+	end
+
+	local is_empty = (count == 0)
+
+	if not is_empty then
+		window["count-flow"]["count"].caption = {"players-inventory.caption-count", count}
+	end
+
+	window["empty-flow"].visible = is_empty
+	window["count-flow"].visible = not is_empty
 end
 
 function PlayersInventory.build_player_inventory_panel(window, player)
 	local panel = window["main-flow"].add{
 		type = "frame",
 		direction = "vertical",
-		tags = {player_index=player.index, player=player.name}
+		tags = {player_index=player.index}
 	}
 	panel.style.padding = 8
 
-	panel.add{type="label", caption=player.name, style="subheader_caption_label"}
 
-	local resources = panel.add{type="table", name="resources", column_count=10}
+	local header = panel.add{type="flow"}
+	header.style.width = 448
+
+	header.add{
+		type = "sprite-button",
+		name = "expand-player-inventory-button",
+		sprite = "utility/expand",
+		hovered_sprite = "utility/expand_dark",
+		clicked_sprite = "utility/expand_dark",
+		style = "frame_action_button"
+	}
+
+	header.add{type="label", caption=player.name, style="subheader_caption_label"}
+
+	local playerdata = get_make_playerdata(player.index)
+
+	if playerdata.applied then
+		header.add{type="label", caption={"players-inventory.label-"..playerdata.role}}
+	end
+
+	if player.permission_group.name == "Manager" then
+		header.add{type="label", caption={"players-inventory.label-manager"}}
+	end
+
+	if player.connected then
+		header.add{type="label", caption={"players-inventory.label-online"}}
+	else
+		header.add{type="label", caption={"players-inventory.label-offline"}}
+	end
+
+	-- player.last_online
+
+	local content = panel.add{type="flow", name="content", direction="vertical"}
+	content.visible = false
+
+	local resources = content.add{type="table", name="resources", column_count=10}
 	resources.style.top_margin = 8
 	resources.style.left_margin = 2
 	resources.style.padding = 2
 
+
 	PlayersInventory.build_player_inventory_grid(resources, player)
 
-	local buttons = panel.add{type="flow", direction="horizontal"}
+	-- get_inventory(inventory)
+	-- defines.inventory.character_guns
+	-- defines.inventory.character_ammo
+	-- defines.inventory.character_armor
+	-- defines.inventory.character_vehicle
+	-- defines.inventory.character_trash
+
+
+	local buttons = content.add{type="flow", direction="horizontal"}
 	buttons.style.top_margin = 8
 
 	buttons.add{
 		type = "button",
 		name = "follow-player-button",
-		caption = {"players-inventory.follow-caption"},
+		caption = {"players-inventory.caption-follow"},
 		tags = {player_index=player.index}
 	}
 	buttons.add{
 		type = "button",
 		name = "grab-player-inventory-button",
-		caption = {"players-inventory.grab-caption"},
+		caption = {"players-inventory.caption-grab"},
 		tags = {player_index=player.index}
 	}
 	buttons.add{
 		type = "button",
 		name = "kick-player-button",
-		caption = {"players-inventory.kick-caption"},
-		tags = {player_index=player.index, panel=panel.get_index_in_parent()}
+		caption = {"players-inventory.caption-kick"},
+		tags = {player_index=player.index, action="kick", panel=panel.get_index_in_parent()}
 	}
 	buttons.add{
 		type = "button",
 		name = "ban-player-button",
-		caption = {"players-inventory.ban-caption"},
-		tags = {player_index=player.index, panel=panel.get_index_in_parent()}
+		caption = {"players-inventory.caption-ban"},
+		tags = {player_index=player.index, action="ban", panel=panel.get_index_in_parent()}
 	}
 end
 
@@ -173,7 +311,6 @@ function PlayersInventory.build_player_inventory_grid(panel, player)
 				number = amount,
 				ignored_by_interaction = true
 			}
-			-- game.print(name)
 		end
 	end
 
@@ -190,6 +327,68 @@ function PlayersInventory.build_player_inventory_grid(panel, player)
 			panel.add{type="sprite-button", ignored_by_interaction=true}
 		end
 	end
+end
+
+function PlayersInventory.build_kickban_accept_window(player_index, action, panel)
+	local player = game.players[player_index]
+
+	local window = player.gui.screen.add{type="frame", name="kickban-accept-window", direction="vertical"}
+
+
+	-- Header --------------------------------------------------------------------------------------------------------------
+	local titlebar = window.add{type="flow", direction="horizontal"}
+	titlebar.drag_target = window
+
+	titlebar.add{
+		type="label",
+		caption={"players-inventory.caption-action", {"players-inventory.caption-"..action}, player.name},
+		ignored_by_interaction=true,
+		style="frame_title"
+	}
+
+	local spacer = titlebar.add{type="empty-widget", ignored_by_interaction=true, style="draggable_space"}
+	spacer.style.horizontally_stretchable = "on"
+	spacer.style.height = 24
+	spacer.style.left_margin = 4
+	spacer.style.right_margin=4
+	
+	titlebar.add{
+		type = "sprite-button",
+		name = "close-kickban-accept-window-button",
+		sprite = "utility/close_white",
+		hovered_sprite = "utility/close_black",
+		clicked_sprite = "utility/close_black",
+		style = "frame_action_button"
+	}
+
+
+	-- Reason ---------------------------------------------------------------------------------------------------
+	window.add{type="label", caption={"players-inventory.caption-reason"}, style="inventory_label"}
+
+	local reason_textbox = window.add{type="text-box", name="reason-textbox", text="Пшёл вон!"}
+	reason_textbox.style.width = 350
+	reason_textbox.style.height = 100
+
+	
+	-- Buttons --------------------------------------------------------------------------------------------------------
+	local buttons = window.add{type="flow", direction="horizontal"}
+	buttons.style.horizontally_stretchable = "on"
+	buttons.style.top_margin = 5
+	buttons.style.horizontal_align = "right"
+
+	buttons.add{
+		type = "button",
+		name = "accept-kickban-button",
+		caption = {"players-inventory.caption-"..action},
+		tags = {player_index=player_index, action=action, panel=panel}
+	}
+	buttons.add{
+		type = "button",
+		name = "cancel-kickban-button",
+		caption = {"players-inventory.caption-cancel"}
+	}
+
+	return window
 end
 
 
@@ -223,68 +422,62 @@ function PlayersInventory.on_toggle_players_inventory_window(event)
 		end
 	end
 
+	-- if player.admin then
+	-- 	game.permissions.get_group("Admin").add_player(player)
+	-- end
+
+	-- if player.permission_group.name == "Manager" then
+	-- 	game.permissions.get_group("Admin").add_player(player)
+	-- else
+	-- 	game.permissions.get_group("Manager").add_player(player)
+	-- end
+
 	local window = PlayersInventory.build_players_inventory_window(player)
+	PlayersInventory.build_players_inventory_list(window)
 
-	for _, player in pairs(game.players) do
-		if not player.admin and player.connected then
-			PlayersInventory.build_player_inventory_panel(window, player)
-		end
-	end
-
-	if #window["main-flow"].children == 0 then
-		window["empty-flow"].visible = true
-	end
 
 	window.force_auto_center()
 end
 
-function PlayersInventory.on_search_button_click(event)
-	local search_field = event.element.parent["search-player-textfield"]
-	local main_flow = search_field.parent.parent["main-flow"]
-	local empty_flow = search_field.parent.parent["empty-flow"]
-
-	search_field.visible = not search_field.visible
-
-	if search_field.visible then
-		if search_field.text then
-			search_field.text = ""
-
-			for _, panel in pairs(main_flow.children) do
-				panel.visible = true
-			end
-		end
-
-		empty_flow.visible = false
-		search_field.focus()
-	end
-end
-
-function PlayersInventory.on_search_players(event)
-	local empty_flow = event.element.parent.parent["empty-flow"]
-	local main_flow = event.element.parent.parent["main-flow"]
-	local text = string.lower(event.element.text)
-	local empty = true
-	
-	for _, panel in pairs(main_flow.children) do
-		panel.visible = false
-	end
-
-	for _, panel in pairs(main_flow.children) do
-		if string.find(string.lower(panel.tags.player), text) then
-			panel.visible = true
-			empty = false
-		end
-	end
-
-	empty_flow.visible = empty
-end
-
-function PlayersInventory.on_search_confirmed(event)
-	event.element.visible = false
-end
-
 function PlayersInventory.on_close_players_inventory_window_button_click(event)
 	game.players[event.player_index].gui.screen["players-inventory-window"].destroy()
+end
+
+function PlayersInventory.on_change_filters(event)
+	if not event or not event.element or not event.element.valid then
+        return
+    end
+
+    if event.element.name ~= "filter-connected"
+    and event.element.name ~= "filter-role"
+    and event.element.name ~= "filter-search" then
+    	return
+    end
+
+	local window = game.players[event.player_index].gui.screen["players-inventory-window"]
+
+	if not window then
+		return
+	end
+
+	PlayersInventory.build_players_inventory_list(window)
+end
+
+function PlayersInventory.on_expand_player_inventory_button_click(event)
+	local button = event.element
+	local content = button.parent.parent["content"]
+
+	if content.visible then
+		button.sprite = "utility/expand"
+		button.hovered_sprite = "utility/expand_dark"
+		button.clicked_sprite = "utility/expand_dark"
+	else
+		button.sprite = "utility/collapse"
+		button.hovered_sprite = "utility/collapse_dark"
+		button.clicked_sprite = "utility/collapse_dark"
+	end
+
+	content.visible = not content.visible
 end
 
 function PlayersInventory.on_show_player_button_click(event)
@@ -323,32 +516,30 @@ function PlayersInventory.on_grab_player_inventory_button_click(event)
 	PlayersInventory.build_player_inventory_grid(panel, from_player)
 end
 
-function PlayersInventory.on_kick_player_button_click(event)
+function PlayersInventory.on_kickban_buttons_click(event)
 	local tags = event.element.tags
-	local player = game.players[tags.player_index]
-	local panel = game.players[event.player_index].gui.screen["players-inventory-window"]["main-flow"].children[tags.panel]
-	game.kick_player(player)
-	panel.destroy()
+	local window = PlayersInventory.build_kickban_accept_window(tags.player_index, tags.action, tags.panel)
+	window["reason-textbox"].focus()
+	window["reason-textbox"].select_all()
+
+	window.force_auto_center()
 end
 
-function PlayersInventory.on_ban_player_button_click(event)
+function PlayersInventory.on_kickban_accept_button_click(event)
 	local tags = event.element.tags
 	local player = game.players[tags.player_index]
-	local panel = game.players[event.player_index].gui.screen["players-inventory-window"]["main-flow"].children[tags.panel]
-	game.ban_player(player)
-	panel.destroy()
+	local window = game.players[event.player_index].gui.screen["players-inventory-window"]
+	local kickban_window = game.players[event.player_index].gui.screen["kickban-accept-window"]
+
+	game[tags.action.."_player"](player, kickban_window["reason-textbox"].text)
+	window['main-flow'].children[tags.panel].destroy()
+
+	kickban_window.destroy()
 end
 
-
-PlayersInventory.players_inventory_gui_click_events = {
-    ["toggle-players-inventory-window-button"] = PlayersInventory.on_toggle_players_inventory_window,
-    ["search-player-button"] = PlayersInventory.on_search_button_click,
-    ["close-players-inventory-window-button"] = PlayersInventory.on_close_players_inventory_window_button_click,
-    ["follow-player-button"] = PlayersInventory.on_show_player_button_click,
-    ["grab-player-inventory-button"] = PlayersInventory.on_grab_player_inventory_button_click,
-    ["kick-player-button"] = PlayersInventory.on_kick_player_button_click,
-    ["ban-player-button"] = PlayersInventory.on_ban_player_button_click
-}
+function PlayersInventory.on_kickban_closecancel_buttons_click(event)
+	game.players[event.player_index].gui.screen["kickban-accept-window"].destroy()
+end
 
 function PlayersInventory.on_players_inventory_gui_click(event)
 	if not event or not event.element or not event.element.valid then
@@ -363,12 +554,40 @@ function PlayersInventory.on_players_inventory_gui_click(event)
 	end
 end
 
+
+PlayersInventory.players_inventory_gui_click_events = {
+    ["toggle-players-inventory-window-button"] = PlayersInventory.on_toggle_players_inventory_window,
+    ["close-players-inventory-window-button"] = PlayersInventory.on_close_players_inventory_window_button_click,
+    ["follow-player-button"] = PlayersInventory.on_show_player_button_click,
+    ["grab-player-inventory-button"] = PlayersInventory.on_grab_player_inventory_button_click,
+    ["kick-player-button"] = PlayersInventory.on_kickban_buttons_click,
+    ["ban-player-button"] = PlayersInventory.on_kickban_buttons_click,
+    ["accept-kickban-button"] = PlayersInventory.on_kickban_accept_button_click,
+    ["cancel-kickban-button"] = PlayersInventory.on_kickban_closecancel_buttons_click,
+    ["close-kickban-accept-window-button"] = PlayersInventory.on_kickban_closecancel_buttons_click,
+    ["expand-player-inventory-button"] = PlayersInventory.on_expand_player_inventory_button_click
+}
+
+
 function print(str)
 	game.print(str)
-	-- for i, k in pairs(str) do
-	-- 	game.print(i)
-	-- end
 end
 
+function pprint(obj, value)
+	for i, k in pairs(obj) do
+		if value then 
+			game.print(i .. " - " .. k)
+		else
+			game.print(i .. " - " .. type(k))
+		end
+	end
+end
+
+-- TODO:
+-- 1. [done] Сделать подтверждайки для киков и банов
+-- 2. [done] Сделать надписи после ников онлайн, группа, мут/бан
+-- 3. [done] Сделать итоговую строку с количеством результатов
+-- 4. [???] Сделать фильтр мутов/банов
+-- 5. Возможно сделать вывод содержимого оружейных слотов и слота брони
 
 return PlayersInventory
