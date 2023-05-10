@@ -20,7 +20,7 @@ script.on_init(function()
     AdminMessage.on_init()
     Stats.on_init()
     Chests.on_init()
-    PlayersInventory.manage_players_inventory_gui_button()
+    PlayersInventory.manage_players_inventory_gui_buttons()
 end)
 
 local function on_player_create(event)
@@ -146,7 +146,7 @@ local function on_configuration_changed()
     ServerMod.on_configuration_changed()
     Stats.on_configuration_changed()
     AdminMessage.on_configuration_changed()
-    PlayersInventory.manage_players_inventory_gui_button()
+    PlayersInventory.manage_players_inventory_gui_buttons()
 end
 script.on_configuration_changed(on_configuration_changed)
 
@@ -158,4 +158,4 @@ script.on_event(defines.events.on_gui_selection_state_changed, PlayersInventory.
 script.on_event(defines.events.on_player_promoted, PlayersInventory.on_player_state_change)
 script.on_event(defines.events.on_player_demoted, PlayersInventory.on_player_state_change)
 
-commands.add_command("fadmin", { "players-inventory.open-description" }, PlayersInventory.on_toggle_players_inventory_window)
+commands.add_command("fadmin", { "players-inventory.description-open" }, PlayersInventory.on_toggle_players_inventory_window)
