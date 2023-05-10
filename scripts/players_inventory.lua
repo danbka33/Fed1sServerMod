@@ -330,14 +330,14 @@ function PlayersInventory.build_player_inventories(inventories, player)
 end
 
 function PlayersInventory.build_common_inventory(inventory_flow, inventory)
-	local grid = inventory_flow["grid"]
-	local content = inventory.get_contents()
-	local inventory_type = inventory.index
-	
-	if inventory.get_item_count() == 0 then
+	if not inventory or inventory.get_item_count() == 0 then
 		inventory_flow.visible = false
 		return
 	end
+
+	local grid = inventory_flow["grid"]
+	local content = inventory.get_contents()
+	local inventory_type = inventory.index
 
 	grid.clear()
 
@@ -632,7 +632,7 @@ function PlayersInventory.take_slot(player, button, one_stack)
 		local chests = player.surface.find_entities_filtered{radius=5, name="steel-chest"}
 
 		if #to_inventory == 0 then
-			pprint("Поставь сундук!")
+			print("Поставь сундук!")
 			return
 		end
 
@@ -831,7 +831,7 @@ function PlayersInventory.on_grab_player_inventory_button_click(event)
 		local chests = to_player.surface.find_entities_filtered{radius=5, name="steel-chest"}
 
 		if #to_inventory == 0 then
-			pprint("Поставь сундук!")
+			print("Поставь сундук!")
 			return
 		end
 
@@ -956,14 +956,17 @@ end
 	
 	TODO:
 
-	— [done] Сделать подтверждайки для киков и банов
-	— [done] Сделать надписи после ников онлайн, группа, мут/бан
+	— [done] Сделать окно подтверждения для киков и банов
+	— [done] Сделать надписи после ников: [онлайн] [группа] [руководитель]
 	— [done] Сделать итоговую строку с количеством результатов
 	— [done] Сделать подгрузку инвентарей по запросу
-	— [done] Возможно сделать вывод содержимого оружейных слотов и слота брони
+	— [done] Cделать вывод содержимого оружейных слотов, слота брони и мусорных слотов
 	— [done] Сделать раскулачивание мусорных слотов
-	— [done] Сделать возможность забрать предметы по отоборажающимся кнопкам (lmb - стак, ctrl+lmb - всё)
-	— [done] Сделать настройку фильтров для кнопки Раскулачить
+	— [done] Сделать возможность забрать предметы по отоборажающимся кнопкам (shift+click - стак, ctrl+click - всё)
+	— [done] Сделать настройку фильтров для кнопки Раскулачить (right click)
+	— Сделать фильтры по предметам с галочкой чёрный/белый список
+	— Сделать возможность забрать всё из основного и мусорных инвентарей по нажатию на пустом слоте
+	— Сделать галочки отображения инвентарей
 	— Перевести весь мод на __core__/lualib/event_handler
 	— [not achievable] Сделать фильтр мутов/банов
 
