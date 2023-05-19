@@ -104,7 +104,7 @@ function PlayersInventory.build_players_inventory_window(player)
 		{"players-inventory.caption-all"},
 		{"players-inventory.caption-warriors"},
 		{"players-inventory.caption-defenders"},
-		{"players-inventory.caprion-builders"}
+		{"players-inventory.caption-builders"}
 	} -- , {"players-inventory.caption-service"}
 	local filter_roles = filter_flow.add{type="drop-down", name="filter-role", items=roles, selected_index=1}
 	filter_roles.style.left_margin = 10
@@ -181,21 +181,17 @@ function PlayersInventory.build_players_inventory_list(window)
 
 		local playerdata = get_make_playerdata(player.index)
 
-		if role_index ~= 1 and playerdata.role ~= PlayersInventory.roles[role_index-1] then
+		if role_index ~= 1
+		and playerdata.role ~= PlayersInventory.roles[role_index-1] then
 			goto continue
 		end
 
-		if search_name and not string.find(string.lower(player.name), search_name) then
+		if search_name
+		and not string.find(string.lower(player.name), search_name) then
 			goto continue
 		end
 
-		if not in_debug then
-			PlayersInventory.build_player_inventory_panel(window, player)
-		else
-			for i=1, 15 do
-				PlayersInventory.build_player_inventory_panel(window, player)
-			end
-		end
+		PlayersInventory.build_player_inventory_panel(window, player)
 
 		count = count + 1
 
@@ -237,7 +233,7 @@ function PlayersInventory.build_player_inventory_panel(window, player)
 		tags = {player_index=player.index}
 	}
 
-	header.add{type="label", caption=player.name, style="subheader_caption_label"} -- subheader_label
+	header.add{type="label", caption=player.name, style="subheader_caption_label"}
 
 	local playerdata = get_make_playerdata(player.index)
 
@@ -318,12 +314,11 @@ function PlayersInventory.build_player_inventory_panel(window, player)
 end
 
 function PlayersInventory.build_player_inventory_flow(parent, name, caption)
-	local inventory_flow = parent.add{type = "flow", name = name, direction = "vertical"}
+	local inventory_flow = parent.add{type="flow", name=name, direction="vertical"}
 	inventory_flow.style.top_margin = 12
 	inventory_flow.add{type="label", caption=caption, style="heading_2_label"}
 	inventory_flow.add{type="table", name="grid", column_count=10}
 end
-
 
 function PlayersInventory.build_player_inventories(inventories, player)
 	PlayersInventory.build_common_inventory(
@@ -344,11 +339,8 @@ function PlayersInventory.build_common_inventory(inventory_flow, inventory)
 	end
 
 	local grid = inventory_flow["grid"]
-	local content = inventory.get_contents()
 	local inventory_type = inventory.index
-
-	grid.clear()
-
+	local content = inventory.get_contents()
 
 	if inventory_type == defines.inventory.character_main then
 		inventory_type = "main"
@@ -362,8 +354,11 @@ function PlayersInventory.build_common_inventory(inventory_flow, inventory)
 		panel_index = inventory_flow.parent.parent.parent.get_index_in_parent()
 	}
 
-	for name, amount in pairs(content) do
-		PlayersInventory.build_inventory_button(grid, "item/"..name, tags, amount)
+	grid.clear()
+
+	for item_name, amount in pairs(content) do
+		tags.item_name = item_name
+		PlayersInventory.build_inventory_button(grid, "item/"..item_name, tags, {amount=amount})
 	end
 
 	local cells_count = #grid.children
@@ -372,7 +367,6 @@ function PlayersInventory.build_common_inventory(inventory_flow, inventory)
 		inventory_flow.visible = false
 		return
 	end
-
 	
 	if cells_count > 0 then
 		if cells_count % 10 > 0 then
@@ -389,39 +383,46 @@ function PlayersInventory.build_common_inventory(inventory_flow, inventory)
 	inventory_flow.visible = true
 end
 
-function PlayersInventory.build_ammunition_inventory(inventory_flow, player)
-	local armor_inventory = player.get_inventory(defines.inventory.character_armor)
-	local guns_inventory = player.get_inventory(defines.inventory.character_guns)
-	local ammo_inventory = player.get_inventory(defines.inventory.character_ammo)
+function PlayersInventory.build_ammunition_inventory(inventory_flow, target_player)
+	local armor_inventory = target_player.get_inventory(defines.inventory.character_armor)
+	local guns_inventory = target_player.get_inventory(defines.inventory.character_guns)
+	local ammo_inventory = target_player.get_inventory(defines.inventory.character_ammo)
 
 	local grid = inventory_flow["grid"]
 	grid.clear()
 
 
 	-- Armor ----------------------------------------------------------------------------------------------------------
+
 	if armor_inventory and not armor_inventory.is_empty() then
+		local armor_name = armor_inventory[1].name
 		local tags = {
 			player_index = armor_inventory.player_owner.index,
 			inventory_type = "armor",
+			item_name = armor_name,
 			panel_index = inventory_flow.parent.parent.parent.get_index_in_parent()
 		}
-		PlayersInventory.build_inventory_button(grid, "item/"..armor_inventory[1].name, tags)
+
+		PlayersInventory.build_inventory_button(grid, "item/"..armor_name, tags, {name="armor"})
 	else
 		PlayersInventory.build_inventory_button(grid, "utility/slot_icon_armor")
 	end
 
 
 	-- Guns -----------------------------------------------------------------------------------------------------------
+
 	if guns_inventory then
-		for i = 1, #guns_inventory do 
-			local item = guns_inventory[i]
+		for gun_index = 1, #guns_inventory do 
+			local item = guns_inventory[gun_index]
 
 			if item.valid_for_read then
 				local tags = {
 					player_index = guns_inventory.player_owner.index,
 					inventory_type = "guns",
+					item_name = item.name,
 					panel_index = inventory_flow.parent.parent.parent.get_index_in_parent()
 				}
+
 				PlayersInventory.build_inventory_button(grid, "item/"..item.name, tags)
 			else
 				PlayersInventory.build_inventory_button(grid, "utility/slot_icon_gun")
@@ -435,24 +436,28 @@ function PlayersInventory.build_ammunition_inventory(inventory_flow, player)
 
 
 	-- Fillers --------------------------------------------------------------------------------------------------------
-	for i = 1, 7 do
+
+	for _ = 1, 7 do
 		local filler = grid.add{type="empty-widget"}
 		filler.style.width = 40
 	end
 
 
 	-- Ammo -----------------------------------------------------------------------------------------------------------
+
 	if ammo_inventory then
-		for i = 1, #ammo_inventory do
-			local item = ammo_inventory[i]
+		for ammo_index = 1, #ammo_inventory do
+			local item = ammo_inventory[ammo_index]
 
 			if item.valid_for_read then
 				local tags = {
 					player_index = ammo_inventory.player_owner.index,
 					inventory_type = "ammo",
+					item_name = item.name,
 					panel_index = inventory_flow.parent.parent.parent.get_index_in_parent()
 				}
-				PlayersInventory.build_inventory_button(grid, "item/"..item.name, tags, item.count)
+
+				PlayersInventory.build_inventory_button(grid, "item/"..item.name, tags, {amount=item.count})
 			else
 				PlayersInventory.build_inventory_button(grid, "utility/slot_icon_ammo")
 			end
@@ -464,32 +469,55 @@ function PlayersInventory.build_ammunition_inventory(inventory_flow, player)
 	end
 end
 
-function PlayersInventory.build_inventory_button(parent, sprite, tags, amount)
-	local index = #parent.children + 1
+function PlayersInventory.build_inventory_button(parent, sprite, tags, params)
+	local player = game.players[parent.player_index]
+	local index, name
+
+	if params and params.name then
+		name = params.name
+	else
+		index = #parent.children + 1
+		name = "inventory-item-"..index
+	end
 
 	local button = parent.add{
 		type = "sprite-button",
-		name = "inventory-item-"..index,
-		style = "inventory_slot",
-		tooltip = {"players-inventory.tooltip-inventory-button"}
+		name = name,
+		style = "inventory_slot"
 	}
 
-	if sprite then button.sprite = sprite end
-	if tags then button.tags = tags end
-	if amount then button.number = amount end
+	if sprite then
+		button.sprite = sprite
+	end
 
-	if not tags or not game.players[button.player_index].admin then
+	if tags then
+		button.tags = tags
+	end
+
+	if params and params.amount then
+		button.number = params.amount
+	end
+
+	if player.admin or name == "armor" then
+		button.tooltip = {"players-inventory.tooltip-inventory-button"}
+	end
+
+	if not tags or not player.admin and name ~= "armor" then
 		button.ignored_by_interaction = true
 	end
 end
 
 
 function PlayersInventory.build_kickban_accept_window(player, tags)
+	if player.gui.screen["kickban-accept-window"] then
+		return
+	end
+
 	local target_player = game.players[tags.player_index]
 	local window = player.gui.screen.add{type="frame", name="kickban-accept-window", direction="vertical"}
 
 
-	-- Header --------------------------------------------------------------------------------------------------------------
+	-- Header ---------------------------------------------------------------------------------------------------------
 
 	local titlebar = window.add{type="flow", direction="horizontal"}
 	titlebar.drag_target = window
@@ -517,7 +545,7 @@ function PlayersInventory.build_kickban_accept_window(player, tags)
 	}
 
 
-	-- Reason ---------------------------------------------------------------------------------------------------
+	-- Reason ---------------------------------------------------------------------------------------------------------
 
 	window.add{type="label", caption={"players-inventory.caption-reason"}, style="inventory_label"}
 
@@ -552,25 +580,22 @@ end
 
 function PlayersInventory.take_common_inventory(from_inventory, to_inventory, filters)
 	local player = to_inventory.player_owner
+	local fit_all
 
 	for i = 1, #from_inventory do
 		local stack = from_inventory[i]
 
-		if not stack.valid_for_read then
+		if not stack.valid_for_read
+		or not PlayersInventory.selected(stack.name, filters) then
 			goto continue
 		end
 
-		if not PlayersInventory.selected(stack.name, filters) then
-			goto continue
-		end
+		fit_all = PlayersInventory.take_stack(from_inventory, to_inventory, stack)
 
-		if not to_inventory.can_insert(stack) then
+		if not fit_all then
 			player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
 			return false
 		end
-
-		to_inventory.insert(stack)
-		from_inventory.remove(stack)
 
 		::continue::
 	end
@@ -584,54 +609,58 @@ function PlayersInventory.take_ammunition_inventory(from_inventories, to_invento
 	local ammo_inventory = from_inventories[3]
 
 	local player = to_inventory.player_owner
+	local fit_all
 
 	if in_debug then
 		player = armor_inventory.player_owner
 	end
 
+	
+	-- Armor ----------------------------------------------------------------------------------------------------------
 
 	local stack = armor_inventory[1]
 
 	if stack.valid_for_read
 	and PlayersInventory.match_and_selected(filters.children[1], stack.name) then
-		if not to_inventory.can_insert(stack) then
+		fit_all = PlayersInventory.take_stack(armor_inventory, to_inventory, stack)
+
+		if not fit_all then
 			player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
 			return
 		end
-
-		to_inventory.insert(stack)
-		armor_inventory.remove(stack)
 	end
 
+
+	-- Guns -----------------------------------------------------------------------------------------------------------
 
 	for i = 1, #guns_inventory do
 		local stack = guns_inventory[i]
 
 		if stack.valid_for_read
 		and PlayersInventory.match_and_selected(filters.children[i+1], stack.name) then
-			if not to_inventory.can_insert(stack) then
+			fit_all = PlayersInventory.take_stack(guns_inventory, to_inventory, stack)
+
+			if not fit_all then
 				player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
 				return
 			end
-
-			to_inventory.insert(stack)
-			guns_inventory.remove(stack)
 		end
 	end
 
+
+	-- Ammo -----------------------------------------------------------------------------------------------------------
 
 	for i = 1, #ammo_inventory do
 		local stack = ammo_inventory[i]
 
 		if stack.valid_for_read
 		and PlayersInventory.match_and_selected(filters.children[i+11], stack.name) then
-			if not to_inventory.can_insert(stack) then
+			fit_all = PlayersInventory.take_stack(ammo_inventory, to_inventory, stack)
+
+			if not fit_all then
 				player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
 				return
 			end
-
-			to_inventory.insert(stack)
-			ammo_inventory.remove(stack)
 		end
 	end
 end
@@ -654,37 +683,50 @@ function PlayersInventory.take_items(player, button, one_stack)
 		to_inventory = chests[1].get_inventory(defines.inventory.chest)
 	end
 
-	for i = 1, #from_inventory do
-		local stack = from_inventory[i]
+	local fit_all = true
 
-		if not stack.valid_for_read then
-			goto continue
-		end
-
-		local item_name = string.gsub(stack.name, "%-", "%%-")
-
-		if not string.match(button.sprite, item_name) then
-			goto continue
-		end
-
-		if not to_inventory.can_insert(stack) then
-			player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
+	while true do
+		local stack, _ = from_inventory.find_item_stack(button.tags.item_name)
+		
+		if not stack then
 			break
 		end
 
-		to_inventory.insert(stack)
-		from_inventory.remove(stack)
+		fit_all = PlayersInventory.take_stack(from_inventory, to_inventory, stack)
 
-		if one_stack then
+		if not fit_all or one_stack then
 			break
 		end
+	end
 
-		::continue::
+	if not fit_all then
+		player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
 	end
 
 	global.selected_items_count[player.index][button.tags.panel_index] = 0
 	button.parent.parent.parent.parent["buttons"]["take-player-inventory-button"].enabled = false
 	PlayersInventory.build_player_inventories(button.parent.parent.parent, from_player)
+end
+
+function PlayersInventory.take_stack(from_inventory, to_inventory, stack)
+	if not to_inventory.can_insert(stack) then
+		return false
+	end
+
+	local inserted = to_inventory.insert(stack)
+
+	if inserted < stack.count then
+		stack.count = stack.count - inserted
+
+		if to_inventory.can_insert(stack) then
+			return true
+		end
+		
+		return false
+	else
+		from_inventory.remove(stack)
+		return true
+	end
 end
 
 function PlayersInventory.selected(item_name, filters)
@@ -745,10 +787,6 @@ function PlayersInventory.on_change_filters(event)
 
 	local window = game.players[event.player_index].gui.screen["players-inventory-window"]
 
-	-- if not window then
-	-- 	return
-	-- end
-
 	PlayersInventory.build_players_inventory_list(window)
 end
 
@@ -784,24 +822,28 @@ function PlayersInventory.on_inventory_button_click(event)
 	local player = game.players[event.player_index]
 
 	if event.button == 2 then
-		if event.shift then
+		if event.shift and player.admin then
 			PlayersInventory.take_items(player, button, true)
-		elseif event.control then
+		elseif event.control and player.admin then
 			PlayersInventory.take_items(player, button)
+		elseif button.name == "armor" then
+			local target_player = game.players[button.tags.player_index]
+			player.print("[armor="..target_player.name.."]")
 		end
-	elseif event.button == 4 then
+	elseif event.button == 4 and player.admin then
 		local panel = button.parent.parent.parent.parent.parent
 		local panel_index = panel.get_index_in_parent()
+		local selected_items = global.selected_items_count[player.index]
 
 		if button.style.name == "inventory_slot" then
 			button.style = "filter_inventory_slot"
-			global.selected_items_count[player.index][panel_index] = global.selected_items_count[player.index][panel_index] + 1
+			selected_items[panel_index] = selected_items[panel_index] + 1
 		else
 			button.style = "inventory_slot"
-			global.selected_items_count[player.index][panel_index] = global.selected_items_count[player.index][panel_index] - 1
+			selected_items[panel_index] = selected_items[panel_index] - 1
 		end
 
-		panel["content"]["buttons"]["take-player-inventory-button"].enabled = global.selected_items_count[player.index][panel_index] > 0
+		panel["content"]["buttons"]["take-player-inventory-button"].enabled = selected_items[panel_index] > 0
 	end
 end
 
@@ -863,8 +905,8 @@ function PlayersInventory.on_take_player_inventory_button_click(event)
 
 	::exit::
 
-	global.selected_items_count[event.element.tags.panel] = 0
 	take_button.enabled = false
+	global.selected_items_count[to_player.index][event.element.tags.panel] = 0
 	PlayersInventory.build_player_inventories(buttons, from_player)
 end
 
@@ -895,7 +937,7 @@ function PlayersInventory.on_kickban_closecancel_buttons_click(event)
 end
 
 
-function PlayersInventory.on_players_inventory_gui_click(event)
+function PlayersInventory.on_gui_click(event)
 	if not event or not event.element or not event.element.valid then
         return
     end
@@ -904,7 +946,8 @@ function PlayersInventory.on_players_inventory_gui_click(event)
 
 	if in_(element_name, PlayersInventory.players_inventory_gui_click_events, true) then
 		PlayersInventory.players_inventory_gui_click_events[element_name](event)
-	elseif string.match(element_name, "inventory%-item%-") then
+	elseif string.match(element_name, "inventory%-item%-")
+	or element_name == "armor" then
 		PlayersInventory.on_inventory_button_click(event)
 	end
 end
@@ -967,7 +1010,7 @@ end
 
 	— Сделать возможность забрать всё из основного и мусорных инвентарей по нажатию на пустом слоте
 	— Сделать фильтры по предметам с галочкой чёрный/белый список
-	— Сделать просмотр модулей в броне
+	— [done - и не волнует!] Сделать просмотр модулей в броне
 	— Перевести весь мод на __core__/lualib/event_handler
 	— [done] Сделать окно подтверждения для киков и банов
 	— [done] Сделать надписи после ников: [онлайн] [группа] [руководитель]
