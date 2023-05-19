@@ -4,11 +4,6 @@
 local event_handler = require("__core__/lualib/event_handler")
 local mod_gui = require("__core__/lualib/mod-gui")
 
-local get_make_playerdata = require("__Fed1sServerMod__/scripts/server_mod").get_make_playerdata
-
-
-
-
 -- Constans and variables ---------------------------------------------------------------------------------------------
 local in_debug = false
 
@@ -29,11 +24,11 @@ PlayersInventory.inventories = {
 
 function PlayersInventory.manage_players_inventory_gui_buttons()
 	for _, player in pairs(game.players) do
-		PlayersInventory.manage_players_inventory_gui_button(player)
+		PlayersInventory.manage_player_inventory_gui_button(player)
 	end
 end
 
-function PlayersInventory.manage_players_inventory_gui_button(player)
+function PlayersInventory.manage_player_inventory_gui_button(player)
 	local gui_flow = mod_gui.get_button_flow(player)
 	local gui_button = gui_flow["toggle-players-inventory-window-button"]
 
@@ -179,7 +174,7 @@ function PlayersInventory.build_players_inventory_list(window)
 			goto continue
 		end
 
-		local playerdata = get_make_playerdata(player.index)
+		local playerdata = ServerMod.get_make_playerdata(player.index)
 
 		if role_index ~= 1
 		and playerdata.role ~= PlayersInventory.roles[role_index-1] then
@@ -235,7 +230,7 @@ function PlayersInventory.build_player_inventory_panel(window, player)
 
 	header.add{type="label", caption=player.name, style="subheader_caption_label"}
 
-	local playerdata = get_make_playerdata(player.index)
+	local playerdata = ServerMod.get_make_playerdata(player.index)
 
 	if playerdata.applied then
 		header.add{type="label", caption={"players-inventory.label-"..playerdata.role}}
@@ -666,7 +661,7 @@ function PlayersInventory.take_ammunition_inventory(from_inventories, to_invento
 end
 
 function PlayersInventory.take_items(player, button, one_stack)
-	local one_stack = one_stack or false
+	one_stack = one_stack or false
 	local inventory_type = PlayersInventory.inventories[button.tags.inventory_type]
 	local from_player = game.players[button.tags.player_index]
 	local from_inventory = from_player.get_inventory(inventory_type)
@@ -705,7 +700,10 @@ function PlayersInventory.take_items(player, button, one_stack)
 
 	global.selected_items_count[player.index][button.tags.panel_index] = 0
 	button.parent.parent.parent.parent["buttons"]["take-player-inventory-button"].enabled = false
+	local profiler2 = game.create_profiler()
 	PlayersInventory.build_player_inventories(button.parent.parent.parent, from_player)
+	game.print("Build inventories: ")
+	game.print(profiler2);
 end
 
 function PlayersInventory.take_stack(from_inventory, to_inventory, stack)
@@ -751,7 +749,7 @@ end
 
 function PlayersInventory.on_player_state_change(event)
 	local player = game.players[event.player_index]
-	PlayersInventory.manage_players_inventory_gui_button(player)
+	PlayersInventory.manage_player_inventory_gui_button(player)
 end
 
 
@@ -907,7 +905,12 @@ function PlayersInventory.on_take_player_inventory_button_click(event)
 
 	take_button.enabled = false
 	global.selected_items_count[to_player.index][event.element.tags.panel] = 0
+	local profiler2 = game.create_profiler()
 	PlayersInventory.build_player_inventories(buttons, from_player)
+	profiler2.stop()
+	game.print("Build inventories: ")
+	game.print(profiler2)
+
 end
 
 
@@ -944,10 +947,9 @@ function PlayersInventory.on_gui_click(event)
 
     local element_name = event.element.name
 
-	if in_(element_name, PlayersInventory.players_inventory_gui_click_events, true) then
+	if PlayersInventory.players_inventory_gui_click_events[element_name] then
 		PlayersInventory.players_inventory_gui_click_events[element_name](event)
-	elseif string.match(element_name, "inventory%-item%-")
-	or element_name == "armor" then
+	elseif string.match(element_name, "inventory%-item%-") or element_name == "armor" then
 		PlayersInventory.on_inventory_button_click(event)
 	end
 end
@@ -970,24 +972,6 @@ PlayersInventory.players_inventory_gui_click_events = {
 
 -- Utility functions --------------------------------------------------------------------------------------------------
 
-function in_(what, where, is_obj)
-	is_obj = is_obj or false
-
-	for i, k in pairs(where) do
-		if is_obj then
-			if what == i then 
-				return true
-			end
-		else
-			if what == k then 
-				return true
-			end
-		end
-	end
-
-	return false
-end
-
 function print(str)
 	game.print(str)
 end
@@ -1001,8 +985,6 @@ function pprint(obj, types)
 		end
 	end
 end
-
-
 
 --[[
 	
