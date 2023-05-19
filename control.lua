@@ -28,7 +28,6 @@ local function on_player_create(event)
     PlayersInventory.on_player_state_change(event)
     Stats.on_player_created(event);
     PlayerColor.on_player_created(event)
-
 end
 script.on_event(defines.events.on_player_created, on_player_create)
 
@@ -123,7 +122,7 @@ script.on_event(defines.events.on_pre_ghost_deconstructed, on_pre_ghost_deconstr
 local function on_gui_click(event)
     Chests.on_gui_click(event)
     ServerMod.on_gui_click(event)
-    PlayersInventory.on_players_inventory_gui_click(event)
+    PlayersInventory.on_gui_click(event)
 end
 script.on_event(defines.events.on_gui_click, on_gui_click)
 
@@ -154,7 +153,6 @@ script.on_event("on-toggle-players-inventory-window", PlayersInventory.on_toggle
 script.on_event(defines.events.on_gui_text_changed, PlayersInventory.on_change_filters)
 script.on_event(defines.events.on_gui_switch_state_changed, PlayersInventory.on_change_filters)
 script.on_event(defines.events.on_gui_selection_state_changed, PlayersInventory.on_change_filters)
-
 script.on_event(defines.events.on_player_promoted, PlayersInventory.on_player_state_change)
 script.on_event(defines.events.on_player_demoted, PlayersInventory.on_player_state_change)
 

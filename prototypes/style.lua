@@ -231,3 +231,13 @@ style.server_mod_content_scroll_pane = {
   extra_padding_when_activated = 0,
   vertically_stretchable = "on"
 }
+
+
+-- PlayersInventory styles --
+
+style.player_inventory_equipment_grid = {
+  type = "table_style",
+  margin = 0,
+  horizontal_spacing = 0,
+  vertical_spacing = 0
+}
