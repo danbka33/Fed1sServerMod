@@ -366,7 +366,7 @@ end
 ---Handles gui clicks, including for the overhead button.
 ---@param event EventData.on_gui_click Event data
 function ServerMod.on_gui_click(event)
-    if not event or not event.element or not event.element.valid then
+    if not event.element or not event.element.valid then
         return
     end
 
@@ -443,9 +443,26 @@ end
 ---Closes the Informtron GUI when the player uses `E` or `Esc`.
 ---@param event EventData.on_gui_closed Event data
 function ServerMod.on_gui_closed(event)
-    if event.element and event.element.name == ServerMod.name_root then
+    if not event.element or not event.element.valid then
+        return
+    end
+
+    if event.element.name == ServerMod.name_root then
         ServerMod.close(game.get_player(event.player_index) --[[@as LuaPlayer]])
     end
 end
+
+local event_handlers = {}
+event_handlers.on_init = ServerMod.on_init
+event_handlers.on_nth_tick = {}
+event_handlers.on_nth_tick[60] = ServerMod.on_nth_tick_60
+event_handlers.on_configuration_changed = ServerMod.on_configuration_changed
+event_handlers.events = {
+    [defines.events.on_runtime_mod_setting_changed] = ServerMod.on_runtime_mod_setting_changed,
+    [defines.events.on_player_created] = ServerMod.on_player_created,
+    [defines.events.on_gui_closed] = ServerMod.on_gui_closed,
+    [defines.events.on_gui_click] = ServerMod.on_gui_click
+}
+EventHandler.add_lib(event_handlers)
 
 return ServerMod

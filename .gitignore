@@ -1,2 +1,4 @@
+/.gitignore
 /.idea
-/scripts/players_inventory_window_structure.txt
+/players-inventory-window.txt
+/*.todo

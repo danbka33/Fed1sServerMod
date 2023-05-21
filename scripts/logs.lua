@@ -88,4 +88,16 @@ function Logs.on_player_mined_entity(event)
     end
 end
 
+local event_handlers = {}
+event_handlers.events = {
+    [defines.events.on_built_entity] = Logs.on_entity_created,
+    [defines.events.on_robot_built_entity] = Logs.on_entity_created,
+    [defines.events.script_raised_built] = Logs.on_entity_created,
+    [defines.events.script_raised_revive] = Logs.on_entity_created,
+    [defines.events.on_player_flushed_fluid] = Logs.on_player_flushed_fluid,
+    [defines.events.on_player_mined_entity] = Logs.on_player_mined_entity,
+    [defines.events.on_pre_ghost_deconstructed] = Logs.on_pre_ghost_deconstructed
+}
+EventHandler.add_lib(event_handlers)
+
 return Logs
