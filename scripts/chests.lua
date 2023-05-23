@@ -228,6 +228,10 @@ function Chests.check_player_inventory_for_request(player, playerInventory, requ
 end
 
 function Chests.on_gui_click(event)
+    if not event.element or not event.element.valid then
+        return
+    end
+    
     if event.element.tags and event.element.tags.id and event.element.tags.chestType then
         local id = event.element.tags.id
         local chestType = event.element.tags.chestType
@@ -601,5 +605,27 @@ function Chests.on_gui_opened(event)
     end
 
 end
+
+local event_handlers = {}
+event_handlers.on_init = Chests.on_init
+event_handlers.on_nth_tick = {}
+event_handlers.on_nth_tick[60] = Chests.on_nth_tick_60
+event_handlers.events = {
+    [defines.events.on_built_entity] = Chests.on_entity_created,
+    [defines.events.on_robot_built_entity] = Chests.on_entity_created,
+    [defines.events.script_raised_built] = Chests.on_entity_created,
+    [defines.events.script_raised_revive] = Chests.on_entity_created,
+
+    [defines.events.on_pre_player_mined_item] = Chests.on_entity_removed,
+    [defines.events.on_robot_pre_mined] = Chests.on_entity_removed,
+    [defines.events.on_entity_died] = Chests.on_entity_removed,
+    [defines.events.script_raised_destroy] = Chests.on_entity_removed,
+
+    [defines.events.on_character_corpse_expired] = Chests.on_character_corpse_expired,
+    [defines.events.on_gui_closed] = Chests.on_gui_closed,
+    [defines.events.on_gui_opened] = Chests.on_gui_opened,
+    [defines.events.on_gui_click] = Chests.on_gui_click
+}
+EventHandler.add_lib(event_handlers)
 
 return Chests;

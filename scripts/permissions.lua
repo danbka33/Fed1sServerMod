@@ -439,4 +439,8 @@ function Permissions.create_groups_and_apply_permissions()
     --game.permissions.get_group("Manager").set_allows_action(defines.input_action.admin_action, false)
 end
 
+local event_handlers = {}
+event_handlers.on_init = Permissions.create_groups_and_apply_permissions
+EventHandler.add_lib(event_handlers)
+
 return Permissions;

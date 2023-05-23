@@ -150,4 +150,15 @@ function AdminMessage.on_runtime_mod_setting_changed(event)
     end
 end
 
+local event_handlers = {}
+event_handlers.on_init = AdminMessage.on_init
+event_handlers.on_nth_tick = {}
+event_handlers.on_nth_tick[60] = AdminMessage.on_nth_tick_60
+event_handlers.on_configuration_changed =  AdminMessage.on_configuration_changed
+event_handlers.events = {
+    [defines.events.on_console_chat] = AdminMessage.on_console_chat,
+    [defines.events.on_runtime_mod_setting_changed] = AdminMessage.on_runtime_mod_setting_changed
+}
+EventHandler.add_lib(event_handlers)
+
 return AdminMessage

@@ -1,5 +1,9 @@
 local PlayerColor = {};
 
+function PlayerColor.apply_player_color_handler(event)
+    PlayerColor.apply_player_color(event.player_index)
+end
+
 function PlayerColor.apply_player_color(player_index)
     local player = game.get_player(player_index)
     local playerData = ServerMod.get_make_playerdata(player_index)
@@ -43,9 +47,18 @@ end
 function PlayerColor.on_console_command(event)
     if event.name == defines.events.on_console_command and event.command == "color" then
         local player = game.players[event.player_index]
-        apply_player_color(event.player_index)
+        PlayerColor.apply_player_color(event.player_index)
         game.print("Осуждаем игрока " .. player.name, { 1, 1, 0, 1 })
     end
 end
+
+local event_handlers = {}
+event_handlers.events = {
+    [defines.events.on_player_created] = PlayerColor.on_player_created,
+    [defines.events.on_console_command] = PlayerColor.on_console_command,
+    [defines.events.on_player_joined_game] = PlayerColor.apply_player_color_handler,
+    [defines.events.on_console_chat] = PlayerColor.apply_player_color_handler
+}
+EventHandler.add_lib(event_handlers)
 
 return PlayerColor

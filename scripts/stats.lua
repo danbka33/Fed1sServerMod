@@ -231,4 +231,15 @@ function Stats.update_overhead_stat(player)
 
 end
 
+local event_handlers = {}
+event_handlers.on_init = Stats.on_init
+event_handlers.on_nth_tick = {}
+event_handlers.on_nth_tick[60] = Stats.on_nth_tick_60
+event_handlers.on_configuration_changed = Stats.on_configuration_changed
+event_handlers.events = {
+    [defines.events.on_runtime_mod_setting_changed] = Stats.on_runtime_mod_setting_changed,
+    [defines.events.on_player_created] = Stats.on_player_created
+}
+EventHandler.add_lib(event_handlers)
+
 return Stats
