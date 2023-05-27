@@ -16,8 +16,7 @@ PlayersInventory.roles_filters = {
     {"players-inventory.caption-all"},
     {"players-inventory.caption-warriors"},
     {"players-inventory.caption-defenders"},
-    {"players-inventory.caption-builders"},
-    "Неопределившиеся"
+    {"players-inventory.caption-builders"}
 } -- , {"players-inventory.caption-service"}
 PlayersInventory.inventories = {
     main = defines.inventory.character_main,
@@ -40,15 +39,15 @@ end
 
 function PlayersInventory.create_toggle_button(player)
     local button_flow = mod_gui.get_button_flow(player)
-    local toggle_button = button_flow.players_inventory_toggle_button
-
+    local toggle_button = button_flow.players_inventory_toggle_window
+    
     if toggle_button then
         toggle_button.destroy()
     end
 
     button_flow.add{
         type = "sprite-button",
-        name = "players_inventory_toggle_button",
+        name = "players_inventory_toggle_window",
         sprite = "utility/slot_icon_armor",
         hovered_sprite = "utility/slot_icon_armor_black",
         clicked_sprite = "utility/slot_icon_armor_black",
@@ -65,14 +64,8 @@ function PlayersInventory.build_players_inventory_window(player)
 
     players_data[player.index] = {}
 
-    if player.admin then
-        players_data[player.index].selected = {main={}, armor={}, guns={}, ammo={}}
-    end
-
-
     local window = player.gui.screen.add{type="frame", name="players_inventory_window", direction="vertical"}
     window.style.maximal_height = 850
-    -- window.style.width = 650
 
     players_data[player.index].window = window
 
@@ -92,7 +85,7 @@ function PlayersInventory.build_players_inventory_window(player)
     
     titlebar.add{
         type = "sprite-button",
-        name = "players_inventory_close",
+        name = "players_inventory_close_window_button",
         sprite = "utility/close_white",
         hovered_sprite = "utility/close_black",
         clicked_sprite = "utility/close_black",
@@ -112,12 +105,16 @@ function PlayersInventory.build_players_inventory_window(player)
     tabs.selected_tab_index = player_filters.tab_index
 
 
+    --
+
     return window
 end
 
 function PlayersInventory.create_tab(tabbed_pane, tab_name, player_filters)
     local tab = tabbed_pane.add{type="tab", caption={"players-inventory.caption-"..tab_name}}
-    local content = tabbed_pane.add{type="flow", name=tab_name, direction="vertical"}
+    local content = tabbed_pane.add{type="frame", name=tab_name, direction="vertical"}
+    content.style.top_margin = -2
+    content.style.padding = 10
 
 
     -- Filters --
@@ -128,7 +125,6 @@ function PlayersInventory.create_tab(tabbed_pane, tab_name, player_filters)
 
     if is_connection_tabs or is_search then
         filters = content.add{type="flow", name="filters", direction="horizontal"}
-        filters.style.margin = 10
     end
 
     if is_connection_tabs then
@@ -140,6 +136,7 @@ function PlayersInventory.create_tab(tabbed_pane, tab_name, player_filters)
         }
     elseif is_search then
         local search = filters.add{type="textfield", name="players_inventory_search"}
+
         local clear_search = filters.add{
             type = "sprite-button",
             name = "players_inventory_clear_search",
@@ -154,15 +151,15 @@ function PlayersInventory.create_tab(tabbed_pane, tab_name, player_filters)
 
     -- Players list --
 
-    local players = content.add{type="frame", name="players", direction="vertical", visible=false}
+    local players = content.add{type="flow", name="players", direction="vertical", visible=false}
+    players.style.top_margin = 10
 
     local list = players.add{type="scroll-pane", name="list", direction="vertical"}
     list.style.horizontally_stretchable = true
-    list.style.margin = 10
-
+    
     local count = players.add{type="label", name="count", style="subheader_caption_label"}
-    -- count.style.bottom_margin = 5
-    count.caption = "Всего: 0"
+    count.style.top_margin = 10
+    count.style.padding = 0
 
 
     -- Empty placeholder --
@@ -188,6 +185,8 @@ function PlayersInventory.settingup_and_fill_current_tab(player_index, in_search
     local player_data = PlayersInventory.players_data[player_index]
     local tab_content = player_data.window.players_inventory_tabs.tabs[player_filters.tab_index].content
 
+    player_data.selected = nil
+
     if tab_content.name == "favorites" and #player_filters.favorites == 0
     or tab_content.name == "warnings" and #global.players_inventory_warnings == 0
     or tab_content.name == "muted" and #global.players_inventory_muted == 0
@@ -208,6 +207,8 @@ function PlayersInventory.settingup_and_fill_current_tab(player_index, in_search
             tab_content.placeholder.visible = (#tab_content.players.list.children == 0)
             return
         end
+    elseif tab_content.name == "online" or tab_content.name == "offline" then
+        tab_content.filters.players_inventory_role.selected_index = player_filters.role_index
     end
 
     local players_list = tab_content.players.list
@@ -224,7 +225,7 @@ function PlayersInventory.settingup_and_fill_current_tab(player_index, in_search
             PlayersInventory.fill_players_list_by_role(players_list, online)
         end
     elseif tab_content.name == "warnings" then
-        PlayersInventory.fill_players_list_by_filter(players_list, global.players_inventory_warnings)
+        PlayersInventory.fill_players_list_by_warnings(players_list)
     elseif tab_content.name == "muted" then
         PlayersInventory.fill_players_list_by_filter(players_list, global.players_inventory_muted)
     elseif tab_content.name == "banned" then
@@ -233,15 +234,15 @@ function PlayersInventory.settingup_and_fill_current_tab(player_index, in_search
         PlayersInventory.fill_players_list_by_filter(players_list, player_filters.favorites)
     elseif tab_content.name == "search" then
         PlayersInventory.fill_players_list_by_name(
-            players_list,
-            string.lower(tab_content.filters.players_inventory_search.text)
+            players_list, string.lower(tab_content.filters.players_inventory_search.text)
         )
     end
 
     local count = #players_list.children
 
     if count > 0 then
-        players_list.count.caption = {"players-inventory.caption-count", count}
+        tab_content.players.count.caption = {"players-inventory.caption-count", count}
+        tab_content.players.list.scroll_to_top()
     end
 
     tab_content.players.visible = (count > 0)
@@ -250,14 +251,14 @@ end
 
 function PlayersInventory.fill_players_list_by_role(players_list, online, role)
     for player_index, player in pairs(game.players) do
-        if player.online ~= online then
+        if player.connected ~= online then
             goto continue
         end
 
         if role then
             local playerdata = ServerMod.get_make_playerdata(player_index)
 
-            if currentPlayerData.applied and playerdata.role ~= role then
+            if not playerdata.applied or playerdata.applied and playerdata.role ~= role then
                 goto continue
             end
         end
@@ -274,6 +275,12 @@ function PlayersInventory.fill_players_list_by_filter(players_list, filtered_pla
     end
 end
 
+function PlayersInventory.fill_players_list_by_warnings(players_list)
+    for player_index, _ in pairs(global.players_inventory_warnings) do
+        PlayersInventory.build_player_inventory_panel(players_list, game.players[player_index])
+    end
+end
+
 function PlayersInventory.fill_players_list_by_name(players_list, name)
     for _, player in pairs(game.players) do
         if string.match(string.lower(player.name), name) then
@@ -282,102 +289,203 @@ function PlayersInventory.fill_players_list_by_name(players_list, name)
     end
 end
 
-function PlayersInventory.build_player_inventory_panel(window, player)
-    local self_player = game.players[window.player_index]
-    local panel = window["main-flow"].add{
-        type = "frame",
-        direction = "vertical",
-        tags = {player_index=player.index}
-    }
-    panel.style.padding = 8
+function PlayersInventory.build_player_inventory_panel(players_list, target_player)
+    local self_player = game.players[players_list.player_index]
+    local muted = PlayersInventory.is_muted(target_player.index)
+    local banned = PlayersInventory.is_banned(target_player.index)
+    local warnings = global.players_inventory_warnings[target_player.index] or 0
+    local tab_index = PlayersInventory.players_data[self_player.index].window.players_inventory_tabs.selected_tab_index
+    local role_index = global.players_inventory_filters[self_player.index].role_index
+
+    local panel = players_list.add{type="frame", name=target_player.name, direction="vertical"}
+    panel.style.vertically_stretchable = false
+    panel.style.padding = 5
 
 
-    -- Header ---------------------------------------------------------------------------------------------------------
+    -- Header --
 
-    local header = panel.add{type="flow"}
+    local header = panel.add{type="flow", name="header"}
 
     header.add{
         type = "sprite-button",
-        name = "expand-player-inventory-button",
+        name = "players_inventory_expand_button",
         sprite = "utility/expand",
         hovered_sprite = "utility/expand_dark",
         clicked_sprite = "utility/expand_dark",
         style = "frame_action_button",
-        tags = {player_index=player.index}
+        tags = {player_index=target_player.index}
     }
+
+    header.add{type="label", caption=target_player.name, style="subheader_caption_label"}
+
     header.add{
-        type = "sprite-button",
-        name = "follow-player-button",
-        sprite = "utility/search_white",
-        hovered_sprite = "utility/search_black",
-        clicked_sprite = "utility/search_black",
-        tooltip = {"players-inventory.caption-follow"},
-        visible = player.connected,
-        style = "frame_action_button",
-        tags = {player_index=player.index}
+        type="label", name="admin", caption={"players-inventory.label-admin-badge"},
+        visible=target_player.admin
     }
 
-    header.add{type="label", caption=player.name, style="subheader_caption_label"}
+    header.add{
+        type="label", name="manager", caption={"players-inventory.label-manager-badge"},
+        visible=(target_player.permission_group.name == "Manager")
+    }
 
-    if player.admin then
-        header.add{type="label", caption={"players-inventory.label-admin"}}
+    if (tab_index == 1 or tab_index == 2) and role_index == 1
+    or tab_index ~= 1 and tab_index ~= 2
+    then
+        local playerdata = ServerMod.get_make_playerdata(target_player.index)
+
+        if playerdata.applied then
+            header.add{type="label", name="role", caption={"players-inventory.label-"..playerdata.role.."-badge"}}
+        else
+            header.add{type="label", name="role", caption={"players-inventory.label-undecided-badge"}}
+        end
     end
 
-    if player.permission_group.name == "Manager" then
-        header.add{type="label", caption={"players-inventory.label-manager"}}
+    header.add{
+        type="label", name="warnings", caption={"players-inventory.label-warnings-badge", warnings},
+        visible=(warnings > 0)
+    }
+
+    header.add{
+        type="label", name="muted", caption={"players-inventory.label-muted-badge"},
+        visible=(tab_index ~= 4 and muted)
+    }
+
+    header.add{
+        type="label", name="banned", caption={"players-inventory.label-banned-badge"},
+        visible=(tab_index ~= 5 and banned)
+    }
+    
+    if tab_index ~= 1 and tab_index ~= 2 and tab_index ~= 5 then
+        if target_player.connected then
+            header.add{type="label", name="connection", caption={"players-inventory.label-online-badge"}}
+        else
+            header.add{type="label", name="connection", caption={"players-inventory.label-offline-badge"}}
+        end
     end
-
-    local playerdata = ServerMod.get_make_playerdata(player.index)
-
-    if playerdata.applied then
-        header.add{type="label", caption={"players-inventory.label-"..playerdata.role}}
-    end
-
-    if player.connected then
-        header.add{type="label", caption={"players-inventory.label-online"}}
-    else
-        header.add{type="label", caption={"players-inventory.label-offline"}}
-    end
-
+    
     local spacer = header.add{type="empty-widget", ignored_by_interaction=true}
     spacer.style.horizontally_stretchable = true
 
     header.add{
         type = "sprite-button",
-        name = "mute-player-button",
-        sprite = "utility/logistic_network_panel_white",
-        hovered_sprite = "utility/logistic_network_panel_black",
-        clicked_sprite = "utility/logistic_network_panel_black",
-        tooltip = {"players-inventory.tooltip-mute"},
-        visible = self_player.admin,
+        name = "players_inventory_follow_button",
+        sprite = "utility/search_white",
+        hovered_sprite = "utility/search_black",
+        clicked_sprite = "utility/search_black",
+        tooltip = {"players-inventory.tooltip-follow"},
         style = "frame_action_button",
-        tags = {player_index=player.index, action="mute", panel=panel.get_index_in_parent()}
-    } -- 
-    header.add{
-        type = "sprite-button",
-        name = "kick-player-button",
-        sprite = "utility/warning_white",
-        hovered_sprite = "utility/warning",
-        clicked_sprite = "utility/warning",
-        tooltip = {"players-inventory.tooltip-kick"},
-        visible = self_player.admin,
-        style = "frame_action_button",
-        tags = {player_index=player.index, action="kick", panel=panel.get_index_in_parent()}
-    }
-    header.add{
-        type = "sprite-button",
-        name = "ban-player-button",
-        sprite = "utility/trash_white",
-        hovered_sprite = "utility/trash",
-        clicked_sprite = "utility/trash",
-        tooltip = {"players-inventory.tooltip-ban"},
-        visible = self_player.admin,
-        style = "frame_action_button",
-        tags = {player_index=player.index, action="ban", panel=panel.get_index_in_parent()}
+        visible = target_player.connected,
+        tags = {player_index=target_player.index}
     }
 
+    do 
+        local sprite, altered_sprite, tooltip
 
-    -- Content --------------------------------------------------------------------------------------------------------
+        if PlayersInventory.is_favorite(self_player.index, target_player.index) then
+            sprite = "unfavourite_icon"
+            altered_sprite = "unfavourite_icon"
+            tooltip = {"players-inventory.tooltip-unfavorite"}
+        else
+            sprite = "favourite_icon"
+            altered_sprite = "favourite_icon"
+            tooltip = {"players-inventory.tooltip-favorite"}
+        end
+
+        header.add{
+            type = "sprite-button",
+            name = "players_inventory_favorite_button",
+            sprite = sprite,
+            tooltip = tooltip,
+            style = "frame_action_button",
+            tags = {player_index=target_player.index}
+        }
+            -- hovered_sprite = altered_sprite,
+            -- clicked_sprite = altered_sprite,
+    end
+
+    if self_player.admin then
+        local line = header.add{type="line", direction="vertical", visible=self_player.admin}
+        line.style.left_margin = 5
+        line.style.right_margin = 5
+        line.style.height = 25
+
+        header.add{
+            type = "sprite-button",
+            name = "players_inventory_warn_button",
+            sprite = "utility/warning_white",
+            hovered_sprite = "utility/warning",
+            clicked_sprite = "utility/warning",
+            tooltip = {"players-inventory.tooltip-warn"},
+            style = "frame_action_button",
+            tags = {player_index=target_player.index, action="warn"}
+        }
+
+        do
+            local sprite, altered_sprite, tooltip
+
+            if muted then
+                sprite = "utility/play"
+                altered_sprite = "utility/play"
+                tooltip = {"players-inventory.tooltip-unmute"}
+            else
+                sprite = "utility/stop"
+                altered_sprite = "utility/stop"
+                tooltip = {"players-inventory.tooltip-mute"}
+            end
+
+            header.add{
+                type = "sprite-button",
+                name = "players_inventory_mute_button",
+                sprite = sprite,
+                tooltip = tooltip,
+                style = "frame_action_button",
+                tags = {player_index=target_player.index, action="mute"}
+            }
+                -- hovered_sprite = altered_sprite,
+                -- clicked_sprite = altered_sprite,
+        end
+
+        if target_player.connected then
+            header.add{
+                type = "sprite-button",
+                name = "players_inventory_kick_button",
+                sprite = "utility/go_to_arrow",
+                tooltip = {"players-inventory.tooltip-kick"},
+                style = "frame_action_button",
+                tags = {player_index=target_player.index, action="kick"}
+            }
+                -- hovered_sprite = "utility/go_to_arrow",
+                -- clicked_sprite = "utility/go_to_arrow",
+        end
+
+        do
+            local sprite, altered_sprite, tooltip
+
+            if banned then
+                sprite = "utility/reset_white"
+                altered_sprite = "utility/reset"
+                tooltip = {"players-inventory.tooltip-unban"}
+            else
+                sprite = "utility/trash_white"
+                altered_sprite = "utility/trash"
+                tooltip = {"players-inventory.tooltip-ban"}
+            end
+
+            header.add{
+                type = "sprite-button",
+                name = "players_inventory_ban_button",
+                sprite = sprite,
+                hovered_sprite = altered_sprite,
+                clicked_sprite = altered_sprite,
+                tooltip = tooltip,
+                style = "frame_action_button",
+                tags = {player_index=target_player.index, action="ban"}
+            }
+        end
+    end
+
+
+    -- Content --
 
     local content = panel.add{type="flow", name="content", direction="vertical"}
     content.style.top_margin = 5
@@ -389,26 +497,26 @@ function PlayersInventory.build_player_inventory_panel(window, player)
     inventories.style.horizontally_stretchable = true
     inventories.style.horizontal_align = "center"
 
-    PlayersInventory.build_player_inventory_flow(
-        inventories,
-        "main-inventory",
-        {"players-inventory.label-main-inventory"}
-    )
-    PlayersInventory.build_player_inventory_flow(
-        inventories,
-        "ammunition-inventory",
-        {"players-inventory.label-ammunition-inventory"}
-    )
-    PlayersInventory.build_player_inventory_flow(
-        inventories,
-        "trash-inventory",
-        {"players-inventory.label-trash-inventory"}
-    )
+    local main_inventory = inventories.add{type="flow", name="main", direction="vertical"}
+    main_inventory.style.top_margin = 12
+    main_inventory.add{type="label", caption={"players-inventory.label-main-inventory"}, style="heading_2_label"}
+    main_inventory.add{type="table", name="grid", column_count=10}
 
-    local line = content.add{type="line", direction="horizontal"}
-    line.style.top_margin = 18
+    local ammunition_inventory = inventories.add{type="flow", name="ammunition", direction="vertical"}
+    ammunition_inventory.style.top_margin = 12
+    ammunition_inventory.add{type="label", caption={"players-inventory.label-ammunition-inventory"}, style="heading_2_label"}
+    ammunition_inventory.add{type="table", name="grid", column_count=10}
 
-    -- Buttons --------------------------------------------------------------------------------------------------------
+    local trash_inventory = inventories.add{type="flow", name="trash", direction="vertical"}
+    trash_inventory.style.top_margin = 12
+    trash_inventory.add{type="label", caption={"players-inventory.label-trash-inventory"}, style="heading_2_label"}
+    trash_inventory.add{type="table", name="grid", column_count=10}
+
+    line = content.add{type="line", direction="horizontal"}
+    line.style.top_margin = 12
+
+
+    -- Buttons --
 
     local buttons = content.add{type="flow", name="buttons", direction="horizontal"}
     buttons.style.padding = 8
@@ -418,169 +526,95 @@ function PlayersInventory.build_player_inventory_panel(window, player)
 
     buttons.add{
         type = "button",
-        name = "take-player-inventory-button",
+        name = "players_inventory_take_selected_button",
         caption = {"players-inventory.caption-take"},
         enabled = false,
-        tags = {player_index=player.index, panel=panel.get_index_in_parent()}
+        tags = {player_index=target_player.index}
     }
 end
 
 
--- ? --
+-- Inventories --
 
-function PlayersInventory.build_players_inventory_list_old(window)
-    local self_player = game.players[window.player_index]
-    local players_list = window["main-flow"]
-    local filters = window["filters-flow"]
-    local connected_state = filters["filter-connected"].switch_state
-    local role_index = filters["filter-role"].selected_index
-    local search_name = string.lower(filters["filter-search"].text)
-    local count = 0
-
-    global.selected_items_count[self_player.index] = {}
-    players_list.clear()
-
-    for _, player in pairs(game.players) do
-        if player.admin and not self_player.admin then 
-            goto continue
-        end
-
-        if player.index == self_player.index and not in_debug and not in_single then 
-            goto continue
-        end
-
-        if connected_state
-        and (connected_state == "left" and not player.connected)
-        or (connected_state == "right" and player.connected) then
-            goto continue
-        end
-
-        local playerdata = ServerMod.get_make_playerdata(player.index)
-
-        if role_index ~= 1
-        and playerdata.role ~= PlayersInventory.roles[role_index-1] then
-            goto continue
-        end
-
-        if search_name
-        and not string.find(string.lower(player.name), search_name) then
-            goto continue
-        end
-
-        PlayersInventory.build_player_inventory_panel(window, player)
-
-        count = count + 1
-
-        ::continue::
-    end
-
-    local is_empty = (count == 0)
-
-    if not is_empty then
-        window["count-flow"]["count"].caption = {"players-inventory.caption-count", count}
-    end
-
-    window["empty-flow"].visible = is_empty
-    window["count-flow"].visible = not is_empty
-end
-
-function PlayersInventory.build_player_inventory_flow(parent, name, caption)
-    local inventory_flow = parent.add{type="flow", name=name, direction="vertical"}
-    inventory_flow.style.top_margin = 12
-    inventory_flow.add{type="label", caption=caption, style="heading_2_label"}
-    inventory_flow.add{type="table", name="grid", column_count=10}
-end
-
-function PlayersInventory.build_player_inventories(inventories, player)
-    PlayersInventory.build_common_inventory(
-        inventories["main-inventory"],
-        player.get_inventory(defines.inventory.character_main)
+function PlayersInventory.fill_inventories_grids(inventories, self_player, target_player)
+    PlayersInventory.fill_common_inventory_grid(
+        inventories.main,
+        self_player,
+        target_player.get_inventory(defines.inventory.character_main)
     )
-    PlayersInventory.build_ammunition_inventory(inventories["ammunition-inventory"], player)
-    PlayersInventory.build_common_inventory(
-        inventories["trash-inventory"],
-        player.get_inventory(defines.inventory.character_trash)
+    PlayersInventory.fill_common_inventory_grid(
+        inventories.trash,
+        self_player,
+        target_player.get_inventory(defines.inventory.character_trash)
     )
+    PlayersInventory.fill_ammunition_inventory_grid(inventories.ammunition.grid, self_player, target_player)
 end
 
-function PlayersInventory.build_common_inventory(inventory_flow, inventory)
+function PlayersInventory.fill_common_inventory_grid(parent, self_player, inventory)
     if not inventory or inventory.get_item_count() == 0 then
-        inventory_flow.visible = false
+        parent.visible = false
         return
     end
 
-    local grid = inventory_flow["grid"]
-    local inventory_type = inventory.index
-    local content = inventory.get_contents()
-
-    if inventory_type == defines.inventory.character_main then
-        inventory_type = "main"
-    else
-        inventory_type = "trash"
-    end
-
-    local tags = {
-        player_index = inventory.player_owner.index,
-        inventory_type = inventory_type,
-        panel_index = inventory_flow.parent.parent.parent.get_index_in_parent()
-    }
-
+    local grid = parent.grid
     grid.clear()
 
+    local content = inventory.get_contents()
+    local player_index = inventory.player_owner.index
+
     for item_name, amount in pairs(content) do
-        tags.item_name = item_name
-        PlayersInventory.build_inventory_button(grid, "item/"..item_name, tags, {amount=amount})
+        local tags = {
+            player_index = player_index,
+            inventory_type = parent.name,
+            item_name = item_name
+        }
+        PlayersInventory.build_inventory_button{
+            grid=grid, sprite="item/"..item_name, tags=tags, amount=amount, admin=self_player.admin
+        }
     end
 
     local cells_count = #grid.children
-
-    if inventory.index ~= defines.inventory.character_main and cells_count == 0 then
-        inventory_flow.visible = false
-        return
-    end
     
     if cells_count > 0 then
         if cells_count % 10 > 0 then
             for _ = 1, 10 - cells_count % 10 do
-                PlayersInventory.build_inventory_button(grid)
+                PlayersInventory.build_inventory_button{grid=grid}
             end
         end
     else
         for _ = 1, 10 do
-            PlayersInventory.build_inventory_button(grid)
+            PlayersInventory.build_inventory_button{grid=grid}
         end
     end
-
-    inventory_flow.visible = true
 end
 
-function PlayersInventory.build_ammunition_inventory(inventory_flow, target_player)
+function PlayersInventory.fill_ammunition_inventory_grid(grid, self_player, target_player)
     local armor_inventory = target_player.get_inventory(defines.inventory.character_armor)
     local guns_inventory = target_player.get_inventory(defines.inventory.character_guns)
     local ammo_inventory = target_player.get_inventory(defines.inventory.character_ammo)
 
-    local grid = inventory_flow["grid"]
     grid.clear()
 
 
-    -- Armor ----------------------------------------------------------------------------------------------------------
+    -- Armor --
 
     if armor_inventory and not armor_inventory.is_empty() then
         local armor_name = armor_inventory[1].name
         local tags = {
             player_index = armor_inventory.player_owner.index,
             inventory_type = "armor",
-            item_name = armor_name,
-            panel_index = inventory_flow.parent.parent.parent.get_index_in_parent()
+            item_name = armor_name
         }
 
-        PlayersInventory.build_inventory_button(grid, "item/"..armor_name, tags, {name="armor"})
+        PlayersInventory.build_inventory_button{
+            grid=grid, sprite="item/"..armor_name, tags=tags, admin=self_player.admin, armor=true
+        }
     else
-        PlayersInventory.build_inventory_button(grid, "utility/slot_icon_armor")
+        PlayersInventory.build_inventory_button{grid=grid, sprite="utility/slot_icon_armor"}
     end
 
 
-    -- Guns -----------------------------------------------------------------------------------------------------------
+    -- Guns --
 
     if guns_inventory then
         for gun_index = 1, #guns_inventory do 
@@ -590,23 +624,24 @@ function PlayersInventory.build_ammunition_inventory(inventory_flow, target_play
                 local tags = {
                     player_index = guns_inventory.player_owner.index,
                     inventory_type = "guns",
-                    item_name = item.name,
-                    panel_index = inventory_flow.parent.parent.parent.get_index_in_parent()
+                    item_name = item.name
                 }
 
-                PlayersInventory.build_inventory_button(grid, "item/"..item.name, tags)
+                PlayersInventory.build_inventory_button{
+                    grid=grid, sprite="item/"..item.name, tags=tags, admin=self_player.admin
+                }
             else
-                PlayersInventory.build_inventory_button(grid, "utility/slot_icon_gun")
+                PlayersInventory.build_inventory_button{grid=grid, sprite="utility/slot_icon_gun"}
             end
         end
     else
-        PlayersInventory.build_inventory_button(grid, "utility/slot_icon_gun")
-        PlayersInventory.build_inventory_button(grid, "utility/slot_icon_gun")
-        PlayersInventory.build_inventory_button(grid, "utility/slot_icon_gun")
+        PlayersInventory.build_inventory_button{grid=grid, sprite="utility/slot_icon_gun"}
+        PlayersInventory.build_inventory_button{grid=grid, sprite="utility/slot_icon_gun"}
+        PlayersInventory.build_inventory_button{grid=grid, sprite="utility/slot_icon_gun"}
     end
 
 
-    -- Fillers --------------------------------------------------------------------------------------------------------
+    -- Fillers --
 
     for _ = 1, 7 do
         local filler = grid.add{type="empty-widget"}
@@ -614,87 +649,87 @@ function PlayersInventory.build_ammunition_inventory(inventory_flow, target_play
     end
 
 
-    -- Ammo -----------------------------------------------------------------------------------------------------------
+    -- Ammo --
 
     if ammo_inventory then
+        local player_index = ammo_inventory.player_owner.index
+
         for ammo_index = 1, #ammo_inventory do
             local item = ammo_inventory[ammo_index]
 
             if item.valid_for_read then
                 local tags = {
-                    player_index = ammo_inventory.player_owner.index,
+                    player_index = player_index,
                     inventory_type = "ammo",
-                    item_name = item.name,
-                    panel_index = inventory_flow.parent.parent.parent.get_index_in_parent()
+                    item_name = item.name
                 }
 
-                PlayersInventory.build_inventory_button(grid, "item/"..item.name, tags, {amount=item.count})
+                PlayersInventory.build_inventory_button{
+                    grid=grid, sprite="item/"..item.name, tags=tags, amount=item.count, admin=self_player.admin
+                }
             else
-                PlayersInventory.build_inventory_button(grid, "utility/slot_icon_ammo")
+                PlayersInventory.build_inventory_button{grid=grid, sprite="utility/slot_icon_ammo"}
             end
         end
     else
-        PlayersInventory.build_inventory_button(grid, "utility/slot_icon_ammo")
-        PlayersInventory.build_inventory_button(grid, "utility/slot_icon_ammo")
-        PlayersInventory.build_inventory_button(grid, "utility/slot_icon_ammo")
+        PlayersInventory.build_inventory_button{grid=grid, sprite="utility/slot_icon_ammo"}
+        PlayersInventory.build_inventory_button{grid=grid, sprite="utility/slot_icon_ammo"}
+        PlayersInventory.build_inventory_button{grid=grid, sprite="utility/slot_icon_ammo"}
     end
 end
 
-function PlayersInventory.build_inventory_button(parent, sprite, tags, params)
-    local player = game.players[parent.player_index]
-    local index, name
+function PlayersInventory.build_inventory_button(params)
+    -- INFO: It's very slow then set tooltip like `button.tooltip = str` against `add{tooltip=str}`
 
-    if params and params.name then
-        name = params.name
-    else
-        index = #parent.children + 1
-        name = "inventory-item-"..index
+    local tooltip
+
+    if params.admin then
+        tooltip = {"players-inventory.tooltip-inventory-button"}
     end
 
-    local button = parent.add{
+    local index = #params.grid.children + 1
+
+    local button = params.grid.add{
         type = "sprite-button",
-        name = name,
+        name = "players_inventory_take_item_button_" .. index,
+        sprite = params.sprite,
+        tooltip = tooltip,
+        ignored_by_interaction = (not params.tags or not params.admin and params.armor),
+        tags = params.tags,
         style = "inventory_slot"
     }
 
-    if sprite then
-        button.sprite = sprite
-    end
-
-    if tags then
-        button.tags = tags
-    end
-
-    if params and params.amount then
+    if params.amount then
         button.number = params.amount
-    end
-
-    if player.admin or name == "armor" then
-        button.tooltip = {"players-inventory.tooltip-inventory-button"}
-    end
-
-    if not tags or not player.admin and name ~= "armor" then
-        button.ignored_by_interaction = true
     end
 end
 
-function PlayersInventory.build_kickban_accept_window(player, tags)
-    if player.gui.screen["kickban-accept-window"] then
+
+-- Punishments --
+
+function PlayersInventory.build_accept_prompt_window(self_player, tags)
+    local players_data = PlayersInventory.players_data[self_player.index]
+
+    if players_data.accept_prompt_window then
         return
     end
 
     local target_player = game.players[tags.player_index]
-    local window = player.gui.screen.add{type="frame", name="kickban-accept-window", direction="vertical"}
+    local window = self_player.gui.screen.add{
+        type="frame", name="players_inventory_accept_prompt_window", direction="vertical"
+    }
+
+    players_data.accept_prompt_window = window
 
 
-    -- Header ---------------------------------------------------------------------------------------------------------
+    -- Header --
 
     local titlebar = window.add{type="flow", direction="horizontal"}
     titlebar.drag_target = window
 
     titlebar.add{
         type = "label",
-        caption = {"players-inventory.caption-action", {"players-inventory.caption-"..tags.action}, target_player.name},
+        caption = {"players-inventory.caption-action", {"players-inventory.tooltip-"..tags.action}, target_player.name},
         ignored_by_interaction = true,
         style = "frame_title"
     }
@@ -707,7 +742,7 @@ function PlayersInventory.build_kickban_accept_window(player, tags)
     
     titlebar.add{
         type = "sprite-button",
-        name = "close-kickban-accept-window-button",
+        name = "players_inventory_close_accept_prompt_window_button",
         sprite = "utility/close_white",
         hovered_sprite = "utility/close_black",
         clicked_sprite = "utility/close_black",
@@ -715,16 +750,25 @@ function PlayersInventory.build_kickban_accept_window(player, tags)
     }
 
 
-    -- Reason ---------------------------------------------------------------------------------------------------------
+    -- Reason --
 
     window.add{type="label", caption={"players-inventory.caption-reason"}, style="inventory_label"}
 
-    local reason_textbox = window.add{type="text-box", name="reason-textbox", text="Пшёл вон!"}
-    reason_textbox.style.width = 350
+    local reason_textbox = window.add{type="text-box", name="players_inventory_reason_textbox"}
+    reason_textbox.style.width = 450
     reason_textbox.style.height = 100
 
+    local player_warnings = global.players_inventory_warnings[target_player.index] or 0
+
+    if tags.action == "warn" then
+        local warn_info = window.add{
+            type="label", caption={"players-inventory.label-warnings-info", player_warnings}
+        }
+        warn_info.style.font_color = {0.6 ,0.6, 0.6, 1}
+    end
+
     
-    -- Buttons --------------------------------------------------------------------------------------------------------
+    -- Buttons --
 
     local buttons = window.add{type="flow", direction="horizontal"}
     buttons.style.horizontally_stretchable = true
@@ -733,20 +777,106 @@ function PlayersInventory.build_kickban_accept_window(player, tags)
 
     buttons.add{
         type = "button",
-        name = "accept-kickban-button",
-        caption = {"players-inventory.caption-"..tags.action},
+        name = "players_inventory_accept_punishment_button",
+        caption = {"players-inventory.tooltip-"..tags.action},
         tags = tags
     }
     buttons.add{
         type = "button",
-        name = "cancel-kickban-button",
+        name = "players_inventory_cancel_punishment_button",
         caption = {"players-inventory.caption-cancel"}
     }
 
 
-    return window
+    -- 
+
+    reason_textbox.focus()
+    window.force_auto_center()
 end
 
+function PlayersInventory.warn_player(self_index, target_player, reason)
+    local warnings_count = PlayersInventory.warn(target_player, reason)
+    local tabs = PlayersInventory.players_data[self_index].window.players_inventory_tabs
+    local panel = tabs.tabs[tabs.selected_tab_index].content.players.list[target_player.name]
+
+    panel.header.warnings.caption = {"players-inventory.label-warnings-badge", warnings_count}
+    panel.header.warnings.visible = true
+end
+
+function PlayersInventory.kick_player(self_index, target_player, reason)
+    game.kick_player(target_player, reason)
+
+    local tabs = PlayersInventory.players_data[self_index].window.players_inventory_tabs
+    
+    if tabs.selected_tab_index == 1 then
+        if PlayersInventory.players_data[self_index].selected then
+            PlayersInventory.players_data[self_index].selected[target_player.name] = nil
+        end
+
+        local tab_content = tabs.tabs[tabs.selected_tab_index].content
+        tab_content.players.list[target_player.name].destroy()
+        
+        if #tab_content.players.list.children > 0 then
+            tab_content.players.count.caption = {
+                "players-inventory.caption-count", #tab_content.players.list.children
+            }
+        else
+            tab_content.players.visible = false
+            tab_content.placeholder.visible = true
+        end
+    else
+        local header = tabs.tabs[tabs.selected_tab_index].content.players.list[target_player.name].header
+
+        if header.connection.visible then
+            header.connection.caption = {"players-inventory.label-offline-badge"}
+        end
+
+        header.players_inventory_ban_button.sprite = "utility/reset_white"
+        header.players_inventory_ban_button.hovered_sprite = "utility/reset"
+        header.players_inventory_ban_button.clicked_sprite = "utility/reset"
+        header.players_inventory_ban_button.tooltip = {"players-inventory.tooltip-unban"}
+    end
+end
+
+function PlayersInventory.ban_player(self_index, target_player, reason)
+    PlayersInventory.ban(target_player, reason)
+
+    local tabs = PlayersInventory.players_data[self_index].window.players_inventory_tabs
+    
+    if tabs.selected_tab_index == 1 then
+        if PlayersInventory.players_data[self_index].selected then
+            PlayersInventory.players_data[self_index].selected[target_player.name] = nil
+        end
+
+        local tab_content = tabs.tabs[tabs.selected_tab_index].content
+        tab_content.players.list[target_player.name].destroy()
+        
+        if #tab_content.players.list.children > 0 then
+            tab_content.players.count.caption = {
+                "players-inventory.caption-count", #tab_content.players.list.children
+            }
+        else
+            tab_content.players.visible = false
+            tab_content.placeholder.visible = true
+        end
+    else
+        local header = tabs.tabs[tabs.selected_tab_index].content.players.list[target_player.name].header
+
+        if header.connection and header.connection.visible then
+            header.connection.caption = {"players-inventory.label-offline-badge"}
+        end
+
+        header.banned.visible = true
+
+        header.players_inventory_ban_button.sprite = "utility/reset_white"
+        header.players_inventory_ban_button.hovered_sprite = "utility/reset"
+        header.players_inventory_ban_button.clicked_sprite = "utility/reset"
+        header.players_inventory_ban_button.tooltip = {"players-inventory.tooltip-unban"}
+    end
+end
+
+
+-- Inventory utility function ------------------------------------------------------------------------------------------
 
 function PlayersInventory.take_common_inventory(from_inventory, to_inventory, filters)
     local player = to_inventory.player_owner
@@ -835,22 +965,22 @@ function PlayersInventory.take_ammunition_inventory(from_inventories, to_invento
     end
 end
 
-function PlayersInventory.take_items(player, button, one_stack)
+function PlayersInventory.take_items(self_player, button, one_stack)
     one_stack = one_stack or false
     local inventory_type = PlayersInventory.inventories[button.tags.inventory_type]
-    local from_player = game.players[button.tags.player_index]
-    local from_inventory = from_player.get_inventory(inventory_type)
-    local to_inventory = player.get_main_inventory()
+    local target_player = game.players[button.tags.player_index]
+    local from_inventory = target_player.get_inventory(inventory_type)
+    local self_inventory = self_player.get_main_inventory()
 
     if in_single then
-        local chests = player.surface.find_entities_filtered{radius=5, name="steel-chest"}
+        local chests = self_player.surface.find_entities_filtered{radius=5, name="steel-chest"}
 
         if #chests == 0 then
             print("Поставь сундук!")
             return
         end
 
-        to_inventory = chests[1].get_inventory(defines.inventory.chest)
+        self_inventory = chests[1].get_inventory(defines.inventory.chest)
     end
 
     local fit_all = true
@@ -862,7 +992,7 @@ function PlayersInventory.take_items(player, button, one_stack)
             break
         end
 
-        fit_all = PlayersInventory.take_stack(from_inventory, to_inventory, stack)
+        fit_all = PlayersInventory.take_stack(from_inventory, self_inventory, stack)
 
         if not fit_all or one_stack then
             break
@@ -870,18 +1000,14 @@ function PlayersInventory.take_items(player, button, one_stack)
     end
 
     if not fit_all then
-        player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
+        self_player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
     end
 
-    global.selected_items_count[player.index][button.tags.panel_index] = 0
+    -- PlayersInventory.players_data[self_player.index].selected[target_player.name] = nil
     button.parent.parent.parent.parent["buttons"]["take-player-inventory-button"].enabled = false
 
     -- TODO: Сделать перестройку только того инвентаря, из которого были изъяты предметы
-    -- local profiler = game.create_profiler()
-    PlayersInventory.build_player_inventories(button.parent.parent.parent, from_player)
-    -- prifiler2.stop()
-    -- game.print("Build inventories: ")
-    -- game.print(profiler);
+    PlayersInventory.fill_inventories_grids(button.parent.parent.parent, self_player, target_player)
 end
 
 function PlayersInventory.take_stack(from_inventory, to_inventory, stack)
@@ -906,7 +1032,100 @@ function PlayersInventory.take_stack(from_inventory, to_inventory, stack)
 end
 
 
--- Interface utility function ------------------------------------------------------------------------------------------
+
+-- Utility functions
+
+function PlayersInventory.is_favorite(self_index, player_index)
+    local favorites = global.players_inventory_filters[self_index].favorites
+
+    if not favorites or #favorites == 0 then
+        return false
+    end
+
+    for index = 1, #favorites do
+        if favorites[index] == player_index then
+            return true
+        end
+    end
+
+    return false
+end
+
+function PlayersInventory.is_muted(player_index)
+    for i = 1, #global.players_inventory_muted do
+        if global.players_inventory_muted[i] == player_index then
+            return true
+        end
+    end
+
+    return false
+end
+
+function PlayersInventory.is_banned(player_index)
+    for i = 1, #global.players_inventory_banned do
+        if global.players_inventory_banned[i] == player_index then
+            return true
+        end
+    end
+
+    return false
+end
+
+function PlayersInventory.favorite(self_index, player_index)
+    local favorites = global.players_inventory_filters[self_index].favorites
+    table.insert(favorites, player_index)
+    table.sort(favorites)
+end
+
+function PlayersInventory.unfavorite(self_index, player_index)
+    PlayersInventory.remove(global.players_inventory_filters[self_index].favorites, player_index)
+end
+
+function PlayersInventory.warn(target_player, reason)
+    local warnings_count = global.players_inventory_warnings[target_player.index] or 0
+    warnings_count = warnings_count + 1
+
+    global.players_inventory_warnings[target_player.index] = warnings_count
+
+    if target_player.connected then
+        local counts = {"первое", "второе", "третье"}
+        target_player.print("Вам вынесено "..counts[warnings_count].." предупреждение:")
+        target_player.print(reason)
+    end
+
+    return warnings_count
+end
+
+function PlayersInventory.mute(target_player)
+    game.mute_player(target_player)
+    table.insert(global.players_inventory_muted, target_player.index)
+    table.sort(global.players_inventory_muted)
+end
+
+function PlayersInventory.unmute(target_player)
+    game.unmute_player(target_player)
+    PlayersInventory.remove(global.players_inventory_muted, target_player.index)
+end
+
+function PlayersInventory.ban(target_player, reason)
+    game.ban_player(target_player, reason)
+    table.insert(global.players_inventory_banned, target_player.index)
+    table.sort(global.players_inventory_banned)
+end
+
+function PlayersInventory.unban(target_player)
+    game.unban_player(target_player)
+    PlayersInventory.remove(global.players_inventory_banned, target_player.index)
+end
+
+function PlayersInventory.remove(list, item)
+    for index = 1, #list do
+        if list[index] == item then
+            table.remove(list, index)
+            return
+        end
+    end
+end
 
 
 
@@ -938,23 +1157,6 @@ end
 
 -- Configuration --
 
-function reinit() -- FOR DEBUG
-
-    global.players_inventory_warnings = {}
-    global.players_inventory_muted = {}
-    global.players_inventory_banned = {}
-    global.players_inventory_filters = {}
-
-    for player_index = 1, #game.players do
-        global.players_inventory_filters[player_index] = {}
-        global.players_inventory_filters[player_index].favorites = {}
-        global.players_inventory_filters[player_index].tab_index = 1
-        global.players_inventory_filters[player_index].role_index = 1
-
-        PlayersInventory.create_toggle_button(game.players[player_index])
-    end
-end
-
 function PlayersInventory.on_init()
     global.players_inventory_warnings = global.players_inventory_warnings or {}
     global.players_inventory_muted = global.players_inventory_muted or {}
@@ -964,7 +1166,17 @@ end
 
 function PlayersInventory.on_configuration_changed(data)
     PlayersInventory.on_init()
-    PlayersInventory.create_toggle_buttons()
+    
+    for _, player in pairs(game.players) do
+        local player_filters = global.players_inventory_filters[player.index]
+
+        player_filters = player_filters or {}
+        player_filters.favorites = player_filters.favorites or {}
+        player_filters.tab_index = player_filters.tab_index or 1
+        player_filters.role_index = player_filters.role_index or 1
+
+        PlayersInventory.create_toggle_button(player)
+    end
 
     if gebug then
         game.print("Configuration updated")
@@ -983,15 +1195,26 @@ function PlayersInventory.on_player_created(event)
 end
 
 
--- Main window --
+-- Main window actions --
 
 function PlayersInventory.on_toggle_players_inventory_window(event)
-    local players_data = PlayersInventory.players_data
     local player_index = event.player_index
+    local player_data = PlayersInventory.players_data[player_index]
 
-    if players_data[player_index] then
-        players_data[player_index].window.destroy()
-        players_data[player_index] = nil
+    if player_data and player_data.accept_prompt_window then
+        player_data.accept_prompt_window.bring_to_front()
+        player_data.accept_prompt_window.players_inventory_reason_textbox.focus()
+        return
+    end
+
+    if player_data and player_data.window then
+        player_data.window.destroy()
+        PlayersInventory.players_data[player_index] = nil
+
+        if in_debug and PlayersInventory.debug then
+            PlayersInventory.debug.destroy()
+        end
+
         return
     end
 
@@ -1000,19 +1223,45 @@ function PlayersInventory.on_toggle_players_inventory_window(event)
     PlayersInventory.settingup_and_fill_current_tab(player_index)
 
     window.force_auto_center()
-end
 
-function PlayersInventory.on_players_inventory_close(event)
-    local players_data = PlayersInventory.players_data
-    local player_index = event.player_index
-
-    if players_data[player_index] then
-        players_data[player_index].window.destroy()
-        players_data[player_index] = nil
+    if in_debug then
+        PlayersInventory.debug = game.players[player_index].gui.left.add{type="scroll-pane"}
+        PlayersInventory.debug.style.width = 300
+        PlayersInventory.debug.style.height = 600
     end
 end
 
+function PlayersInventory.on_close_players_inventory_window(event)
+    local player_data = PlayersInventory.players_data[event.player_index]
+
+    if player_data and player_data.accept_prompt_window then
+        player_data.accept_prompt_window.bring_to_front()
+        player_data.accept_prompt_window.players_inventory_reason_textbox.focus()
+        return
+    end
+
+    if player_data and player_data.window then
+        player_data.window.destroy()
+        PlayersInventory.players_data[event.player_index] = nil
+
+        if in_debug and PlayersInventory.debug then
+            PlayersInventory.debug.destroy()
+        end
+    end
+end
+
+
+-- Filters actions --
+
 function PlayersInventory.on_gui_selected_tab_changed(event)
+    if not event.element.valid then
+        return
+    end
+
+    if event.element.name ~= "players_inventory_tabs" then
+        return
+    end
+
     local tabbed_pane = event.element
     local player_filters = global.players_inventory_filters[event.player_index]
 
@@ -1028,89 +1277,264 @@ function PlayersInventory.on_gui_selected_tab_changed(event)
     PlayersInventory.settingup_and_fill_current_tab(event.player_index)
 end
 
-
-
-
 function PlayersInventory.on_change_filters(event)
     if not event.element.valid then
         return
     end
 
-    if event.element.name ~= "players_inventory_role" then
+    if event.element.name == "players_inventory_role" then
+        local player_filters = global.players_inventory_filters[event.player_index]
+        player_filters.role_index = event.element.selected_index
+        PlayersInventory.settingup_and_fill_current_tab(event.player_index)
+    end
+end
+
+function PlayersInventory.on_search(event)
+    if not event.element.valid then
         return
     end
 
-    
-    local player_filters = global.players_inventory_filters[event.player_index]
-    local player_data = PlayersInventory.players_data[event.player_index]
-    local window = player_data.window
-    local tabs = window.players_inventory_tabs
-    -- local tab = global.
-
-    player_filters.role_index = event.element.selected_index
-
-    tabs.online.filters.players_inventory_role.selected_index = player_filters.role_index
-    tabs.offline.filters.players_inventory_role.selected_index = player_filters.role_index
-
-    -- PlayersInventory.build_players_inventory_list(window)
+    if event.element.name == "players_inventory_search" then
+        PlayersInventory.settingup_and_fill_current_tab(event.player_index, true)
+    end
 end
 
-function PlayersInventory.on_expand_player_inventory_button_click(event)
-    local button = event.element
-    local player = game.players[button.tags.player_index]
-    local content = button.parent.parent["content"]
-    local inventory_index = button.parent.parent.get_index_in_parent()
+function PlayersInventory.on_clear_search(event)
+    event.element.parent.players_inventory_search.text = ""
+    event.element.parent.players_inventory_search.focus()
+    event.element.parent.parent.players.visible = false
+    event.element.parent.parent.placeholder.visible = true
 
-    if content.visible then
+    PlayersInventory.player_data[event.player_index].selected = nil
+end
+
+function PlayersInventory.on_expand_panel(event)
+    local self_player = game.players[event.player_index]
+    local player_data = PlayersInventory.players_data[event.player_index]
+    local button = event.element
+    local target_player = game.players[button.tags.player_index]
+    local panel = button.parent.parent
+
+    if panel.content.visible then
         button.sprite = "utility/expand"
         button.hovered_sprite = "utility/expand_dark"
         button.clicked_sprite = "utility/expand_dark"
 
-        global.selected_items_count[event.player_index][inventory_index] = nil
+        if player_data.selected then
+            player_data.selected[panel.get_index_in_parent()] = nil
+        end
     else
         button.sprite = "utility/collapse"
         button.hovered_sprite = "utility/collapse_dark"
         button.clicked_sprite = "utility/collapse_dark"
 
-        global.selected_items_count[event.player_index][inventory_index] = 0
-
-        PlayersInventory.build_player_inventories(content["inventories"], player)
-        button.parent.parent.parent.scroll_to_element(button.parent.parent)
+        PlayersInventory.fill_inventories_grids(panel.content.inventories, self_player, target_player)
+        panel.parent.scroll_to_element(panel)
     end
 
-    content.visible = not content.visible
+    panel.content.visible = not panel.content.visible
 end
 
 
--- Common actions --
+-- Common player actions
 
-function PlayersInventory.on_search(event)
-    PlayersInventory.settingup_and_fill_current_tab(event.player_index, true)
-end
-
-function PlayersInventory.on_clear_search(event)
-    event.element.parent.players_inventory_search.text = ""
-    PlayersInventory.settingup_and_fill_current_tab(event.player_index, true)
-end
-
-function PlayersInventory.on_show_player_button_click(event)
+function PlayersInventory.on_follow_player(event)
     local character = game.players[event.element.tags.player_index].character
 
     if not character then
         return
     end
 
-    game.players[event.player_index].gui.screen["players-inventory-window"].destroy()
+    PlayersInventory.players_data[event.player_index].window.destroy()
     game.players[event.player_index].zoom_to_world(character.position, 1.0, character)
 end
 
-function PlayersInventory.on_armor_click(event) -- NOT_IMPLEMENTED
-    -- body
+function PlayersInventory.on_favorite_click(event)
+    local element = event.element
+
+    if PlayersInventory.is_favorite(event.player_index, element.tags.player_index) then
+        PlayersInventory.unfavorite(event.player_index, element.tags.player_index)
+
+        local window = PlayersInventory.players_data[event.player_index].window
+        local tab_index = window.players_inventory_tabs.selected_tab_index
+
+        if tab_index == 6 then
+            target_player = game.players[element.tags.player_index]
+
+            if PlayersInventory.players_data[event.player_index].selected then
+                PlayersInventory.players_data[event.player_index].selected[target_player.name] = nil
+            end
+
+            local tab_content = window.players_inventory_tabs.tabs[tab_index].content
+            tab_content.players.list[target_player.name].destroy()
+            
+            if #tab_content.players.list.children > 0 then
+                tab_content.players.count.caption = {
+                    "players-inventory.caption-count", #tab_content.players.list.children
+                }
+            else
+                tab_content.players.visible = false
+                tab_content.placeholder.visible = true
+            end
+        else
+            element.sprite = "favourite_icon"
+            element.tooltip = {"players-inventory.tooltip-favorite"}
+        end
+    else
+        PlayersInventory.favorite(event.player_index, element.tags.player_index)
+        element.sprite = "unfavourite_icon"
+        element.tooltip = {"players-inventory.tooltip-unfavorite"}
+    end
 end
 
--- Common actions --
 
-function PlayersInventory.on_take_player_inventory_button_click(event)
+-- Punishment buttons actions -- 
+
+function PlayersInventory.on_mute_click(event)
+    local target_player = game.players[event.element.tags.player_index]
+    local muted = global.players_inventory_muted
+    local element = event.element
+    local window = PlayersInventory.players_data[event.player_index].window
+    local tabs = window.players_inventory_tabs
+    local tab_content = window.players_inventory_tabs.tabs[tabs.selected_tab_index].content
+
+    if PlayersInventory.is_muted(target_player.index) then
+        PlayersInventory.unmute(target_player)
+
+        if tabs.selected_tab_index == 4 then
+            if PlayersInventory.players_data[event.player_index].selected then
+                PlayersInventory.players_data[event.player_index].selected[target_player.name] = nil
+            end
+
+            tab_content.players.list[target_player.name].destroy()
+            
+            if #tab_content.players.list.children > 0 then
+                tab_content.players.count.caption = {
+                    "players-inventory.caption-count", #tab_content.players.list.children
+                }
+            else
+                tab_content.players.visible = false
+                tab_content.placeholder.visible = true
+            end
+        else
+            tab_content.players.list[target_player.name].header.muted.visible = false
+
+            element.sprite = "utility/stop"
+            element.tooltip = {"players-inventory.tooltip-mute"}
+        end
+    else
+        PlayersInventory.mute(target_player)
+
+        tab_content.players.list[target_player.name].header.muted.visible = true
+        
+        element.sprite = "utility/play"
+        element.tooltip = {"players-inventory.tooltip-unmute"}
+    end
+end
+
+function PlayersInventory.on_ban_click(event)
+    local element = event.element
+    local target_player = game.players[element.tags.player_index]
+
+    if PlayersInventory.is_banned(target_player.index) then
+        PlayersInventory.unban(target_player)
+
+        local window = PlayersInventory.players_data[event.player_index].window
+        local tab_index = window.players_inventory_tabs.selected_tab_index
+
+        if tab_index == 5 then
+            if PlayersInventory.players_data[event.player_index].selected then
+                PlayersInventory.players_data[event.player_index].selected[target_player.name] = nil
+            end
+
+            local tab_content = window.players_inventory_tabs.tabs[tab_index].content
+            tab_content.players.list[target_player.name].destroy()
+            
+            if #tab_content.players.list.children > 0 then
+                tab_content.players.count.caption = {
+                    "players-inventory.caption-count", #tab_content.players.list.children
+                }
+            else
+                tab_content.players.visible = false
+                tab_content.placeholder.visible = true
+            end
+        else
+            element.sprite = "utility/trash_white"
+            element.hovered_sprite = "utility/trash"
+            element.clicked_sprite = "utility/trash"
+            element.tooltip = {"players-inventory.tooltip-ban"}
+        end
+    else
+        PlayersInventory.on_punish_player(event)
+    end
+end
+
+function PlayersInventory.on_punish_player(event)
+    local self_player = game.players[event.player_index]
+    PlayersInventory.build_accept_prompt_window(self_player, event.element.tags)
+end
+
+
+-- Punishment window actions --
+
+function PlayersInventory.on_punishment_accept(event)
+    local tags = event.element.tags
+    local target_player = game.players[tags.player_index]
+    local player_data = PlayersInventory.players_data[event.player_index]
+    local reason = player_data.accept_prompt_window.players_inventory_reason_textbox.text
+
+    player_data.accept_prompt_window.destroy()
+    player_data.accept_prompt_window = nil
+
+    PlayersInventory[tags.action.."_player"](event.player_index, target_player, reason)
+end
+
+function PlayersInventory.on_punishment_closecancel(event)
+    PlayersInventory.players_data[event.player_index].accept_prompt_window.destroy()
+    PlayersInventory.players_data[event.player_index].accept_prompt_window = nil
+end
+
+
+-- Inventory items --
+
+function PlayersInventory.on_inventory_item_click(event)
+    local self_player = game.players[event.player_index]
+    local button = event.element
+
+    if event.button == 2 then
+        if event.shift and self_player.admin then
+            PlayersInventory.take_items(self_player, button, true)
+        elseif event.control and self_player.admin then
+            PlayersInventory.take_items(self_player, button)
+        elseif button.tags.inventory_type == "armor" then
+            local target_player = game.players[button.tags.player_index]
+            self_player.print("[armor="..target_player.name.."]")
+        end
+    elseif event.button == 4 and self_player.admin then
+        local target_player = game.players[button.tags.player_index]
+
+        if not PlayersInventory.players_data[self_player.index].selected then
+            PlayersInventory.players_data[self_player.index].selected = {}
+        end
+
+        local selected = PlayersInventory.players_data[self_player.index].selected
+        selected[target_player.name] = selected[target_player.name] or 0
+
+        if button.style.name == "inventory_slot" then
+            button.style = "filter_inventory_slot"
+            selected[target_player.name] = selected[target_player.name] + 1
+        else
+            button.style = "inventory_slot"
+            selected[target_player.name] = selected[target_player.name] - 1
+        end
+
+        local tabs = PlayersInventory.players_data[self_player.index].window.players_inventory_tabs
+        local panel = tabs.tabs[tabs.selected_tab_index].content.players.list[target_player.name]
+        panel.content.buttons.players_inventory_take_selected_button.enabled = (selected[target_player.name] > 0)
+    end
+end
+
+function PlayersInventory.on_take_selected_click(event)
     local from_player = game.players[event.element.tags.player_index]
     local main_inventory = from_player.get_inventory(defines.inventory.character_main)
     local armor_inventory = from_player.get_inventory(defines.inventory.character_armor)
@@ -1118,16 +1542,17 @@ function PlayersInventory.on_take_player_inventory_button_click(event)
     local ammo_inventory = from_player.get_inventory(defines.inventory.character_ammo)
     local trash_inventory = from_player.get_inventory(defines.inventory.character_trash)
 
+    local to_player = game.players[event.player_index]
+    local to_inventory = to_player.get_main_inventory()
+
     local window = game.players[event.player_index].gui.screen["players-inventory-window"]
-    local panel = window["main-flow"].children[event.element.tags.panel]["content"]
+    local panel = window["main-flow"].children[to_player.name]["content"]
     local take_button = panel["buttons"]["take-player-inventory-button"]
     local buttons = panel["inventories"]
     local main_buttons = buttons["main-inventory"]["grid"]
     local ammunition_buttons = buttons["ammunition-inventory"]["grid"]
     local trash_buttons = buttons["trash-inventory"]["grid"]
 
-    local to_player = game.players[event.player_index]
-    local to_inventory = to_player.get_main_inventory()
 
     if in_single then
         local chests = to_player.surface.find_entities_filtered{radius=5, name="steel-chest"}
@@ -1157,82 +1582,17 @@ function PlayersInventory.on_take_player_inventory_button_click(event)
     ::exit::
 
     take_button.enabled = false
-    global.selected_items_count[to_player.index][event.element.tags.panel] = 0
+    global.selected_items_count[to_player.index][to_player.name] = 0
 
-    -- local profiler = game.create_profiler()
     -- TODO: Сделать перестройку только того инвентаря, из которого были изъяты предметы
-    PlayersInventory.build_player_inventories(buttons, from_player)
-    -- profiler.stop()
-    -- game.print("Build inventories: ")
-    -- game.print(profiler)
-end
-
-function PlayersInventory.on_inventory_button_click(event)
-    local button = event.element
-    local player = game.players[event.player_index]
-
-    if event.button == 2 then
-        if event.shift and player.admin then
-            PlayersInventory.take_items(player, button, true)
-        elseif event.control and player.admin then
-            PlayersInventory.take_items(player, button)
-        elseif button.name == "armor" then
-            -- players_inventory_armor
-            local target_player = game.players[button.tags.player_index]
-            player.print("[armor="..target_player.name.."]")
-        end
-    elseif event.button == 4 and player.admin then
-        local panel = button.parent.parent.parent.parent.parent
-        local panel_index = panel.get_index_in_parent()
-        local selected_items = global.selected_items_count[player.index]
-
-        if button.style.name == "inventory_slot" then
-            button.style = "filter_inventory_slot"
-            selected_items[panel_index] = selected_items[panel_index] + 1
-        else
-            button.style = "inventory_slot"
-            selected_items[panel_index] = selected_items[panel_index] - 1
-        end
-
-        panel["content"]["buttons"]["take-player-inventory-button"].enabled = selected_items[panel_index] > 0
-    end
-end
-
-
-function PlayersInventory.on_mute_button_click(event)
-    game.mute_player(game.players[event.player_index])
-end
-
-function PlayersInventory.on_kickban_buttons_click(event)
-    local player = game.players[event.player_index]
-    local window = PlayersInventory.build_kickban_accept_window(player, event.element.tags)
-    window["reason-textbox"].focus()
-    window["reason-textbox"].select_all()
-
-    window.force_auto_center()
-end
-
-function PlayersInventory.on_kickban_accept_button_click(event)
-    local tags = event.element.tags
-    local player = game.players[tags.player_index]
-    local window = game.players[event.player_index].gui.screen["players-inventory-window"]
-    local kickban_window = game.players[event.player_index].gui.screen["kickban-accept-window"]
-
-    game[tags.action.."_player"](player, kickban_window["reason-textbox"].text)
-    window['main-flow'].children[tags.panel].destroy()
-
-    kickban_window.destroy()
-end
-
-function PlayersInventory.on_kickban_closecancel_buttons_click(event)
-    game.players[event.player_index].gui.screen["kickban-accept-window"].destroy()
+    PlayersInventory.fill_inventories_grids(buttons, to_player, from_player)
 end
 
 
 -- GUI clicks dispatcher --
 
 function PlayersInventory.on_gui_click(event)
-    if not event or not event.element or not event.element.valid then
+    if not event.element.valid then
         return
     end
 
@@ -1240,28 +1600,32 @@ function PlayersInventory.on_gui_click(event)
 
     if PlayersInventory.players_inventory_gui_click_events[element_name] then
         PlayersInventory.players_inventory_gui_click_events[element_name](event)
-    elseif string.match(element_name, "inventory%-item%-") or element_name == "armor" then
-        PlayersInventory.on_inventory_button_click(event)
+    elseif string.match(element_name, "players_inventory_take_item_button_") then
+        PlayersInventory.on_inventory_item_click(event)
     end
 end
 
 PlayersInventory.players_inventory_gui_click_events = {
-    ["players_inventory_toggle_button"] = PlayersInventory.on_toggle_players_inventory_window,
-    ["players_inventory_close"] = PlayersInventory.on_players_inventory_close,
-    ["?expand-player-inventory-button"] = PlayersInventory.on_expand_player_inventory_button_click,
+    ["players_inventory_toggle_window"] = PlayersInventory.on_toggle_players_inventory_window,
+    ["players_inventory_close_window_button"] = PlayersInventory.on_close_players_inventory_window,
 
     ["players_inventory_clear_search"] = PlayersInventory.on_clear_search,
-    ["?follow-player-button"] = PlayersInventory.on_show_player_button_click,
-    ["players_inventory_armor"] = PlayersInventory.on_armor_click,
 
-    ["?take-player-inventory-button"] = PlayersInventory.on_take_player_inventory_button_click,
+    ["players_inventory_expand_button"] = PlayersInventory.on_expand_panel,
 
-    ["?mute-player-button"] = PlayersInventory.on_mute_button_click,
-    ["?kick-player-button"] = PlayersInventory.on_kickban_buttons_click,
-    ["?ban-player-button"] = PlayersInventory.on_kickban_buttons_click,
-    ["?accept-kickban-button"] = PlayersInventory.on_kickban_accept_button_click,
-    ["?cancel-kickban-button"] = PlayersInventory.on_kickban_closecancel_buttons_click,
-    ["?close-kickban-accept-window-button"] = PlayersInventory.on_kickban_closecancel_buttons_click
+    ["players_inventory_follow_button"] = PlayersInventory.on_follow_player,
+    ["players_inventory_favorite_button"] = PlayersInventory.on_favorite_click,
+
+    ["players_inventory_warn_button"] = PlayersInventory.on_punish_player,
+    ["players_inventory_mute_button"] = PlayersInventory.on_mute_click,
+    ["players_inventory_kick_button"] = PlayersInventory.on_punish_player,
+    ["players_inventory_ban_button"] = PlayersInventory.on_ban_click,
+
+    ["players_inventory_accept_punishment_button"] = PlayersInventory.on_punishment_accept,
+    ["players_inventory_cancel_punishment_button"] = PlayersInventory.on_punishment_closecancel,
+    ["players_inventory_close_accept_prompt_window_button"] = PlayersInventory.on_punishment_closecancel,
+
+    ["players_inventory_take_selected"] = PlayersInventory.on_take_selected_click
 }
 
 
@@ -1289,7 +1653,7 @@ event_handlers.on_init = PlayersInventory.on_init
 event_handlers.on_configuration_changed = PlayersInventory.on_configuration_changed
 event_handlers.events = {
     [defines.events.on_player_created] = PlayersInventory.on_player_created,
-    [defines.events.on_player_demoted] = PlayersInventory.on_players_inventory_close,
+    [defines.events.on_player_demoted] = PlayersInventory.on_close_players_inventory_window,
 
     ["on-toggle-players-inventory-window"] = PlayersInventory.on_toggle_players_inventory_window,
 
