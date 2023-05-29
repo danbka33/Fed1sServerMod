@@ -188,7 +188,7 @@ function PlayersInventory.settingup_and_fill_current_tab(player_index, in_search
     player_data.selected = nil
 
     if tab_content.name == "favorites" and #player_filters.favorites == 0
-    or tab_content.name == "warnings" and #global.players_inventory_warnings == 0
+    or tab_content.name == "warnings" and  table_size(global.players_inventory_warnings) == 0
     or tab_content.name == "muted" and #global.players_inventory_muted == 0
     or tab_content.name == "banned" and #global.players_inventory_banned == 0
     then
@@ -382,12 +382,12 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
         local sprite, altered_sprite, tooltip
 
         if PlayersInventory.is_favorite(self_player.index, target_player.index) then
-            sprite = "unfavourite_icon"
-            altered_sprite = "unfavourite_icon"
+            sprite = "players_inventory_unfavorite_white"
+            altered_sprite = "players_inventory_unfavorite_black"
             tooltip = {"players-inventory.tooltip-unfavorite"}
         else
-            sprite = "favourite_icon"
-            altered_sprite = "favourite_icon"
+            sprite = "players_inventory_favorite_white"
+            altered_sprite = "players_inventory_favorite_black"
             tooltip = {"players-inventory.tooltip-favorite"}
         end
 
@@ -395,12 +395,12 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
             type = "sprite-button",
             name = "players_inventory_favorite_button",
             sprite = sprite,
+            hovered_sprite = altered_sprite,
+            clicked_sprite = altered_sprite,
             tooltip = tooltip,
             style = "frame_action_button",
             tags = {player_index=target_player.index}
         }
-            -- hovered_sprite = altered_sprite,
-            -- clicked_sprite = altered_sprite,
     end
 
     if self_player.admin then
@@ -412,9 +412,9 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
         header.add{
             type = "sprite-button",
             name = "players_inventory_warn_button",
-            sprite = "utility/warning_white",
-            hovered_sprite = "utility/warning",
-            clicked_sprite = "utility/warning",
+            sprite = "players_inventory_warning_white",
+            hovered_sprite = "players_inventory_warning_black",
+            clicked_sprite = "players_inventory_warning_black",
             tooltip = {"players-inventory.tooltip-warn"},
             style = "frame_action_button",
             tags = {player_index=target_player.index, action="warn"}
@@ -424,12 +424,12 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
             local sprite, altered_sprite, tooltip
 
             if muted then
-                sprite = "utility/play"
-                altered_sprite = "utility/play"
+                sprite = "players_inventory_unmute_white"
+                altered_sprite = "players_inventory_unmute_black"
                 tooltip = {"players-inventory.tooltip-unmute"}
             else
-                sprite = "utility/stop"
-                altered_sprite = "utility/stop"
+                sprite = "players_inventory_mute_white"
+                altered_sprite = "players_inventory_mute_black"
                 tooltip = {"players-inventory.tooltip-mute"}
             end
 
@@ -437,37 +437,37 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
                 type = "sprite-button",
                 name = "players_inventory_mute_button",
                 sprite = sprite,
+                hovered_sprite = altered_sprite,
+                clicked_sprite = altered_sprite,
                 tooltip = tooltip,
                 style = "frame_action_button",
                 tags = {player_index=target_player.index, action="mute"}
             }
-                -- hovered_sprite = altered_sprite,
-                -- clicked_sprite = altered_sprite,
         end
 
         if target_player.connected then
             header.add{
                 type = "sprite-button",
                 name = "players_inventory_kick_button",
-                sprite = "utility/go_to_arrow",
+                sprite = "players_inventory_kick_white",
+                hovered_sprite = "players_inventory_kick_black",
+                clicked_sprite = "players_inventory_kick_black",
                 tooltip = {"players-inventory.tooltip-kick"},
                 style = "frame_action_button",
                 tags = {player_index=target_player.index, action="kick"}
             }
-                -- hovered_sprite = "utility/go_to_arrow",
-                -- clicked_sprite = "utility/go_to_arrow",
         end
 
         do
             local sprite, altered_sprite, tooltip
 
             if banned then
-                sprite = "utility/reset_white"
-                altered_sprite = "utility/reset"
+                sprite = "players_inventory_unban_white"
+                altered_sprite = "players_inventory_unban_black"
                 tooltip = {"players-inventory.tooltip-unban"}
             else
-                sprite = "utility/trash_white"
-                altered_sprite = "utility/trash"
+                sprite = "players_inventory_ban_white"
+                altered_sprite = "players_inventory_ban_black"
                 tooltip = {"players-inventory.tooltip-ban"}
             end
 
@@ -500,17 +500,17 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
     local main_inventory = inventories.add{type="flow", name="main", direction="vertical"}
     main_inventory.style.top_margin = 12
     main_inventory.add{type="label", caption={"players-inventory.label-main-inventory"}, style="heading_2_label"}
-    main_inventory.add{type="table", name="grid", column_count=10}
+    main_inventory.add{type="table", name="grid", column_count=10, tags={counter=1}}
 
     local ammunition_inventory = inventories.add{type="flow", name="ammunition", direction="vertical"}
     ammunition_inventory.style.top_margin = 12
     ammunition_inventory.add{type="label", caption={"players-inventory.label-ammunition-inventory"}, style="heading_2_label"}
-    ammunition_inventory.add{type="table", name="grid", column_count=10}
+    ammunition_inventory.add{type="table", name="grid", column_count=10, tags={counter=1}}
 
     local trash_inventory = inventories.add{type="flow", name="trash", direction="vertical"}
     trash_inventory.style.top_margin = 12
     trash_inventory.add{type="label", caption={"players-inventory.label-trash-inventory"}, style="heading_2_label"}
-    trash_inventory.add{type="table", name="grid", column_count=10}
+    trash_inventory.add{type="table", name="grid", column_count=10, tags={counter=1}}
 
     line = content.add{type="line", direction="horizontal"}
     line.style.top_margin = 12
@@ -687,11 +687,9 @@ function PlayersInventory.build_inventory_button(params)
         tooltip = {"players-inventory.tooltip-inventory-button"}
     end
 
-    local index = #params.grid.children + 1
-
     local button = params.grid.add{
         type = "sprite-button",
-        name = "players_inventory_take_item_button_" .. index,
+        name = "players_inventory_take_item_button_" .. params.grid.tags.counter,
         sprite = params.sprite,
         tooltip = tooltip,
         ignored_by_interaction = (not params.tags or not params.admin and params.armor),
@@ -702,6 +700,9 @@ function PlayersInventory.build_inventory_button(params)
     if params.amount then
         button.number = params.amount
     end
+
+    tags = {counter=(params.grid.tags.counter + 1)}
+    params.grid.tags = tags
 end
 
 
@@ -868,15 +869,15 @@ function PlayersInventory.ban_player(self_index, target_player, reason)
 
         header.banned.visible = true
 
-        header.players_inventory_ban_button.sprite = "utility/reset_white"
-        header.players_inventory_ban_button.hovered_sprite = "utility/reset"
-        header.players_inventory_ban_button.clicked_sprite = "utility/reset"
+        header.players_inventory_ban_button.sprite = "players_inventory_unban_white"
+        header.players_inventory_ban_button.hovered_sprite = "players_inventory_unban_black"
+        header.players_inventory_ban_button.clicked_sprite = "players_inventory_unban_black"
         header.players_inventory_ban_button.tooltip = {"players-inventory.tooltip-unban"}
     end
 end
 
 
--- Inventory utility function ------------------------------------------------------------------------------------------
+-- Inventory utility function --
 
 function PlayersInventory.take_common_inventory(from_inventory, to_inventory, filters)
     local player = to_inventory.player_owner
@@ -966,69 +967,114 @@ function PlayersInventory.take_ammunition_inventory(from_inventories, to_invento
 end
 
 function PlayersInventory.take_items(self_player, button, one_stack)
-    one_stack = one_stack or false
     local inventory_type = PlayersInventory.inventories[button.tags.inventory_type]
-    local target_player = game.players[button.tags.player_index]
-    local from_inventory = target_player.get_inventory(inventory_type)
+    local from_player = game.players[button.tags.player_index]
+    local from_inventory = from_player.get_inventory(inventory_type)
     local self_inventory = self_player.get_main_inventory()
+    local selected = PlayersInventory.players_data[self_player.index].selected or {}
+    local items
 
-    if in_single then
-        local chests = self_player.surface.find_entities_filtered{radius=5, name="steel-chest"}
-
-        if #chests == 0 then
-            print("Поставь сундук!")
-            return
-        end
-
-        self_inventory = chests[1].get_inventory(defines.inventory.chest)
+    if one_stack then
+        items = from_inventory.find_item_stack(button.tags.item_name)
+    else
+        items = {name=button.tags.item_name, count=from_inventory.get_item_count(button.tags.item_name)}
     end
 
-    local fit_all = true
+    local fits_all = PlayersInventory.move_items(from_inventory, self_inventory, items)
 
-    while true do
-        local stack, _ = from_inventory.find_item_stack(button.tags.item_name)
-        
-        if not stack then
-            break
+    if not fits_all then
+        if button.tags.inventory_type ~= "armor" and button.tags.inventory_type ~= "guns" then
+            button.number = from_inventory.get_item_count(button.tags.item_name)
         end
 
-        fit_all = PlayersInventory.take_stack(from_inventory, self_inventory, stack)
-
-        if not fit_all or one_stack then
-            break
-        end
-    end
-
-    if not fit_all then
+        self_player.play_sound{path="utility/cannot_build"}
         self_player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
+    else
+        self_player.play_sound{path="utility/inventory_move"}
+
+        if button.tags.inventory_type == "main" or button.tags.inventory_type == "trash" then
+            local count = from_inventory.get_item_count(button.tags.item_name)
+
+            if count > 0 then
+                button.number = count
+                return
+            end
+
+            if button.style.name == "filter_inventory_slot" then
+                selected[from_player.name] = selected[from_player.name] - 1
+            end
+
+            local fillers = {}
+
+            for index = #button.parent.children, 1, -1 do
+                local temp_button = button.parent.children[index]
+
+                if temp_button.sprite ~= "" then
+                    break
+                end
+
+                table.insert(fillers, temp_button)
+            end
+
+            if (#button.parent.children - #fillers) == 1 then
+                button.parent.parent.visible = false
+            else
+                if #fillers == 9 then
+                    for _, temp_button in pairs(fillers) do
+                        temp_button.destroy()
+                    end
+                else
+                    PlayersInventory.build_inventory_button{grid=button.parent}
+                end
+
+                button.destroy()
+            end
+        else
+            if button.style.name == "filter_inventory_slot" then
+                button.style = "inventory_slot"
+                selected[from_player.name] = selected[from_player.name] - 1
+            end
+
+            if button.tags.inventory_type == "armor" then
+                button.sprite = "utility/slot_icon_armor"
+            elseif button.tags.inventory_type == "guns" then
+                button.sprite = "utility/slot_icon_gun"
+            elseif button.tags.inventory_type == "ammo" then
+                button.sprite = "utility/slot_icon_ammo"
+            end
+
+            button.tooltip = nil
+            button.ignored_by_interaction = true
+        end
+
+        local window = PlayersInventory.players_data[self_player.index].window
+        local tab = window.players_inventory_tabs.tabs[window.players_inventory_tabs.selected_tab_index]
+        local panel = tab.content.players.list[from_player.name]
+        local take_selected_button = panel.content.buttons.players_inventory_take_selected_button
+        take_selected_button.enabled = ((selected[from_player.name] or 0) > 0)
     end
-
-    -- PlayersInventory.players_data[self_player.index].selected[target_player.name] = nil
-    button.parent.parent.parent.parent["buttons"]["take-player-inventory-button"].enabled = false
-
-    -- TODO: Сделать перестройку только того инвентаря, из которого были изъяты предметы
-    PlayersInventory.fill_inventories_grids(button.parent.parent.parent, self_player, target_player)
 end
 
-function PlayersInventory.take_stack(from_inventory, to_inventory, stack)
-    if not to_inventory.can_insert(stack) then
+function PlayersInventory.move_items(from_inventory, to_inventory, items)
+    if not to_inventory.can_insert(items) then
         return false
     end
 
-    local inserted = to_inventory.insert(stack)
+    local name = items.name
+    local count = items.count
+    local inserted = to_inventory.insert(items)
 
-    if inserted < stack.count then
-        stack.count = stack.count - inserted
+    if inserted < count then
+        items.count = inserted
+    end
 
-        if to_inventory.can_insert(stack) then
-            return true
-        end
-        
-        return false
-    else
-        from_inventory.remove(stack)
+    from_inventory.remove(items)
+
+    if from_inventory.get_item_count(name) == 0 then
         return true
     end
+
+    return (inserted == count)
 end
 
 
@@ -1322,6 +1368,7 @@ function PlayersInventory.on_expand_panel(event)
 
         if player_data.selected then
             player_data.selected[panel.get_index_in_parent()] = nil
+            panel.content.buttons.players_inventory_take_selected_button.enabled = false
         end
     else
         button.sprite = "utility/collapse"
@@ -1377,12 +1424,16 @@ function PlayersInventory.on_favorite_click(event)
                 tab_content.placeholder.visible = true
             end
         else
-            element.sprite = "favourite_icon"
+            element.sprite = "players_inventory_favorite_white"
+            element.hovered_sprite = "players_inventory_favorite_black"
+            element.clicked_sprite = "players_inventory_favorite_black"
             element.tooltip = {"players-inventory.tooltip-favorite"}
         end
     else
         PlayersInventory.favorite(event.player_index, element.tags.player_index)
-        element.sprite = "unfavourite_icon"
+        element.sprite = "players_inventory_unfavorite_white"
+        element.hovered_sprite = "players_inventory_unfavorite_black"
+        element.clicked_sprite = "players_inventory_unfavorite_black"
         element.tooltip = {"players-inventory.tooltip-unfavorite"}
     end
 end
@@ -1419,7 +1470,9 @@ function PlayersInventory.on_mute_click(event)
         else
             tab_content.players.list[target_player.name].header.muted.visible = false
 
-            element.sprite = "utility/stop"
+            element.sprite = "players_inventory_mute_white"
+            element.hovered_sprite = "players_inventory_mute_black"
+            element.clicked_sprite = "players_inventory_mute_black"
             element.tooltip = {"players-inventory.tooltip-mute"}
         end
     else
@@ -1427,7 +1480,9 @@ function PlayersInventory.on_mute_click(event)
 
         tab_content.players.list[target_player.name].header.muted.visible = true
         
-        element.sprite = "utility/play"
+        element.sprite = "players_inventory_unmute_white"
+        element.hovered_sprite = "players_inventory_unmute_black"
+        element.clicked_sprite = "players_inventory_unmute_black"
         element.tooltip = {"players-inventory.tooltip-unmute"}
     end
 end
@@ -1459,9 +1514,9 @@ function PlayersInventory.on_ban_click(event)
                 tab_content.placeholder.visible = true
             end
         else
-            element.sprite = "utility/trash_white"
-            element.hovered_sprite = "utility/trash"
-            element.clicked_sprite = "utility/trash"
+            element.sprite = "players_inventory_ban_white"
+            element.hovered_sprite = "players_inventory_ban_black"
+            element.clicked_sprite = "players_inventory_ban_black"
             element.tooltip = {"players-inventory.tooltip-ban"}
         end
     else
@@ -1604,6 +1659,10 @@ function PlayersInventory.on_gui_click(event)
         PlayersInventory.on_inventory_item_click(event)
     end
 end
+-- local profiler = game.create_profiler()
+-- profiler.stop()
+-- local label = PlayersInventory.debug.add{type="label"}
+-- label.caption = profiler
 
 PlayersInventory.players_inventory_gui_click_events = {
     ["players_inventory_toggle_window"] = PlayersInventory.on_toggle_players_inventory_window,
@@ -1636,6 +1695,15 @@ function print(str)
 end
 
 function pprint(obj, types)
+    if type(obj) ~= "table" then
+        print("ths not table")
+    end
+
+    if table_size(obj) == 0 then
+        print("{}")
+        return
+    end
+
     for i, k in pairs(obj) do
         if types then 
             game.print(i .. " - " .. type(k))
