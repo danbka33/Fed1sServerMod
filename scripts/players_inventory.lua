@@ -93,16 +93,17 @@ function PlayersInventory.build_players_inventory_window(player)
     }
 
 
-    -- Tabs --
+    -- Tabed pane --
 
-    local tabs = window.add{type="tabbed-pane", name="players_inventory_tabs"}
-    tabs.style.top_margin = 10
+    local tabbed_pane = window.add{type="tabbed-pane", name="players_inventory_tabs"}
+    tabbed_pane.style.top_margin = 10
 
-    for _, tab_name in pairs({"online", "offline", "warnings", "muted", "banned", "favorites", "search"}) do
-        PlayersInventory.create_tab(tabs, tab_name, player_filters)
+    for _, tab_name in pairs{"online", "offline", "warnings", "muted", "banned", "favorites", "search"} do
+        PlayersInventory.create_tab(tabbed_pane, tab_name, player_filters)
     end
 
-    tabs.selected_tab_index = player_filters.tab_index
+    tabbed_pane.selected_tab_index = player_filters.tab_index
+    players_data[player.index].current_tab = tabbed_pane.tabs[player_filters.tab_index].content
 
 
     --
@@ -183,70 +184,70 @@ end
 function PlayersInventory.settingup_and_fill_current_tab(player_index, in_search)
     local player_filters = global.players_inventory_filters[player_index]
     local player_data = PlayersInventory.players_data[player_index]
-    local tab_content = player_data.window.players_inventory_tabs.tabs[player_filters.tab_index].content
+    local current_tab = player_data.current_tab
 
-    player_data.selected = nil
+    player_data.selected = {}
 
-    if tab_content.name == "favorites" and #player_filters.favorites == 0
-    or tab_content.name == "warnings" and  table_size(global.players_inventory_warnings) == 0
-    or tab_content.name == "muted" and #global.players_inventory_muted == 0
-    or tab_content.name == "banned" and #global.players_inventory_banned == 0
+    if current_tab.name == "favorites" and #player_filters.favorites == 0
+    or current_tab.name == "warnings" and  table_size(global.players_inventory_warnings) == 0
+    or current_tab.name == "muted" and #global.players_inventory_muted == 0
+    or current_tab.name == "banned" and #global.players_inventory_banned == 0
     then
-        tab_content.players.visible = false
-        tab_content.placeholder.visible = true
+        current_tab.players.visible = false
+        current_tab.placeholder.visible = true
         return
-    elseif tab_content.name == "search" then
-        tab_content.filters.players_inventory_search.focus()
+    elseif current_tab.name == "search" then
+        current_tab.filters.players_inventory_search.focus()
 
-        if in_search and string.len(tab_content.filters.players_inventory_search.text) == 0 then
-            tab_content.players.visible = false
-            tab_content.placeholder.visible = true
+        if in_search and string.len(current_tab.filters.players_inventory_search.text) == 0 then
+            current_tab.players.visible = false
+            current_tab.placeholder.visible = true
             return
         elseif not in_search then
-            tab_content.players.visible = (#tab_content.players.list.children > 0)
-            tab_content.placeholder.visible = (#tab_content.players.list.children == 0)
+            current_tab.players.visible = (#current_tab.players.list.children > 0)
+            current_tab.placeholder.visible = (#current_tab.players.list.children == 0)
             return
         end
-    elseif tab_content.name == "online" or tab_content.name == "offline" then
-        tab_content.filters.players_inventory_role.selected_index = player_filters.role_index
+    elseif current_tab.name == "online" or current_tab.name == "offline" then
+        current_tab.filters.players_inventory_role.selected_index = player_filters.role_index
     end
 
-    local players_list = tab_content.players.list
+    local players_list = current_tab.players.list
 
     players_list.clear()
 
-    if tab_content.name == "online" or tab_content.name == "offline" then
-        local online = (tab_content.name == "online")
+    if current_tab.name == "online" or current_tab.name == "offline" then
+        local online = (current_tab.name == "online")
 
-        if tab_content.filters.players_inventory_role.selected_index > 1 then
-            local role = PlayersInventory.roles[tab_content.filters.players_inventory_role.selected_index - 1]
+        if current_tab.filters.players_inventory_role.selected_index > 1 then
+            local role = PlayersInventory.roles[current_tab.filters.players_inventory_role.selected_index - 1]
             PlayersInventory.fill_players_list_by_role(players_list, online, role)
         else
             PlayersInventory.fill_players_list_by_role(players_list, online)
         end
-    elseif tab_content.name == "warnings" then
+    elseif current_tab.name == "warnings" then
         PlayersInventory.fill_players_list_by_warnings(players_list)
-    elseif tab_content.name == "muted" then
+    elseif current_tab.name == "muted" then
         PlayersInventory.fill_players_list_by_filter(players_list, global.players_inventory_muted)
-    elseif tab_content.name == "banned" then
+    elseif current_tab.name == "banned" then
         PlayersInventory.fill_players_list_by_filter(players_list, global.players_inventory_banned)
-    elseif tab_content.name == "favorites" then
+    elseif current_tab.name == "favorites" then
         PlayersInventory.fill_players_list_by_filter(players_list, player_filters.favorites)
-    elseif tab_content.name == "search" then
+    elseif current_tab.name == "search" then
         PlayersInventory.fill_players_list_by_name(
-            players_list, string.lower(tab_content.filters.players_inventory_search.text)
+            players_list, string.lower(current_tab.filters.players_inventory_search.text)
         )
     end
 
     local count = #players_list.children
 
     if count > 0 then
-        tab_content.players.count.caption = {"players-inventory.caption-count", count}
-        tab_content.players.list.scroll_to_top()
+        current_tab.players.count.caption = {"players-inventory.caption-count", count}
+        current_tab.players.list.scroll_to_top()
     end
 
-    tab_content.players.visible = (count > 0)
-    tab_content.placeholder.visible = (count == 0)
+    current_tab.players.visible = (count > 0)
+    current_tab.placeholder.visible = (count == 0)
 end
 
 function PlayersInventory.fill_players_list_by_role(players_list, online, role)
@@ -294,7 +295,7 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
     local muted = PlayersInventory.is_muted(target_player.index)
     local banned = PlayersInventory.is_banned(target_player.index)
     local warnings = global.players_inventory_warnings[target_player.index] or 0
-    local tab_index = PlayersInventory.players_data[self_player.index].window.players_inventory_tabs.selected_tab_index
+    local tab_name = PlayersInventory.players_data[self_player.index].current_tab.name
     local role_index = global.players_inventory_filters[self_player.index].role_index
 
     local panel = players_list.add{type="frame", name=target_player.name, direction="vertical"}
@@ -328,8 +329,8 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
         visible=(target_player.permission_group.name == "Manager")
     }
 
-    if (tab_index == 1 or tab_index == 2) and role_index == 1
-    or tab_index ~= 1 and tab_index ~= 2
+    if (tab_name == "online" or tab_name == "offline") and role_index == 1
+    or tab_name ~= "online" and tab_name ~= "offline"
     then
         local playerdata = ServerMod.get_make_playerdata(target_player.index)
 
@@ -347,15 +348,15 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
 
     header.add{
         type="label", name="muted", caption={"players-inventory.label-muted-badge"},
-        visible=(tab_index ~= 4 and muted)
+        visible=(tab_name ~= "muted" and muted)
     }
 
     header.add{
         type="label", name="banned", caption={"players-inventory.label-banned-badge"},
-        visible=(tab_index ~= 5 and banned)
+        visible=(tab_name ~= "banned" and banned)
     }
     
-    if tab_index ~= 1 and tab_index ~= 2 and tab_index ~= 5 then
+    if tab_name ~= "online" and tab_name ~= "offline" and tab_name ~= "banned" then
         if target_player.connected then
             header.add{type="label", name="connection", caption={"players-inventory.label-online-badge"}}
         else
@@ -797,8 +798,8 @@ end
 
 function PlayersInventory.warn_player(self_index, target_player, reason)
     local warnings_count = PlayersInventory.warn(target_player, reason)
-    local tabs = PlayersInventory.players_data[self_index].window.players_inventory_tabs
-    local panel = tabs.tabs[tabs.selected_tab_index].content.players.list[target_player.name]
+    local current_tab = PlayersInventory.players_data[self_index].current_tab
+    local panel = current_tab.players.list[target_player.name]
 
     panel.header.warnings.caption = {"players-inventory.label-warnings-badge", warnings_count}
     panel.header.warnings.visible = true
@@ -807,67 +808,66 @@ end
 function PlayersInventory.kick_player(self_index, target_player, reason)
     game.kick_player(target_player, reason)
 
-    local tabs = PlayersInventory.players_data[self_index].window.players_inventory_tabs
+    local current_tab = PlayersInventory.players_data[self_index].current_tab
     
-    if tabs.selected_tab_index == 1 then
+    if current_tab.name == "online" then
         if PlayersInventory.players_data[self_index].selected then
             PlayersInventory.players_data[self_index].selected[target_player.name] = nil
         end
 
-        local tab_content = tabs.tabs[tabs.selected_tab_index].content
-        tab_content.players.list[target_player.name].destroy()
+        current_tab.players.list[target_player.name].destroy()
         
-        if #tab_content.players.list.children > 0 then
-            tab_content.players.count.caption = {
-                "players-inventory.caption-count", #tab_content.players.list.children
+        if #current_tab.players.list.children > 0 then
+            current_tab.players.count.caption = {
+                "players-inventory.caption-count", #current_tab.players.list.children
             }
         else
-            tab_content.players.visible = false
-            tab_content.placeholder.visible = true
+            current_tab.players.visible = false
+            current_tab.placeholder.visible = true
         end
     else
-        local header = tabs.tabs[tabs.selected_tab_index].content.players.list[target_player.name].header
+        local header = current_tab.players.list[target_player.name].header
 
         if header.connection.visible then
             header.connection.caption = {"players-inventory.label-offline-badge"}
         end
 
-        header.players_inventory_ban_button.sprite = "utility/reset_white"
-        header.players_inventory_ban_button.hovered_sprite = "utility/reset"
-        header.players_inventory_ban_button.clicked_sprite = "utility/reset"
-        header.players_inventory_ban_button.tooltip = {"players-inventory.tooltip-unban"}
+        header.players_inventory_follow_button.visible = false
+        header.players_inventory_kick_button.visible = false
     end
 end
 
 function PlayersInventory.ban_player(self_index, target_player, reason)
     PlayersInventory.ban(target_player, reason)
 
-    local tabs = PlayersInventory.players_data[self_index].window.players_inventory_tabs
+    local current_tab = PlayersInventory.players_data[self_index].current_tab
     
-    if tabs.selected_tab_index == 1 then
+    if current_tab.name == "online" then
         if PlayersInventory.players_data[self_index].selected then
             PlayersInventory.players_data[self_index].selected[target_player.name] = nil
         end
 
-        local tab_content = tabs.tabs[tabs.selected_tab_index].content
-        tab_content.players.list[target_player.name].destroy()
-        
-        if #tab_content.players.list.children > 0 then
-            tab_content.players.count.caption = {
-                "players-inventory.caption-count", #tab_content.players.list.children
+        current_tab.players.list[target_player.name].destroy()
+
+        if #current_tab.players.list.children > 0 then
+            current_tab.players.count.caption = {
+                "players-inventory.caption-count", #current_tab.players.list.children
             }
         else
-            tab_content.players.visible = false
-            tab_content.placeholder.visible = true
+            current_tab.players.visible = false
+            current_tab.placeholder.visible = true
         end
     else
-        local header = tabs.tabs[tabs.selected_tab_index].content.players.list[target_player.name].header
+        local header = current_tab.players.list[target_player.name].header
 
         if header.connection and header.connection.visible then
             header.connection.caption = {"players-inventory.label-offline-badge"}
         end
 
         header.banned.visible = true
+
+        header.players_inventory_follow_button.visible = false
+        header.players_inventory_kick_button.visible = false
 
         header.players_inventory_ban_button.sprite = "players_inventory_unban_white"
         header.players_inventory_ban_button.hovered_sprite = "players_inventory_unban_black"
@@ -879,91 +879,132 @@ end
 
 -- Inventory utility function --
 
-function PlayersInventory.take_common_inventory(from_inventory, to_inventory, filters)
-    local player = to_inventory.player_owner
-    local fit_all
+function PlayersInventory.take_common_inventory(from_inventory, to_inventory, parent)
+    if not from_inventory then
+        return true
+    end
 
-    for i = 1, #from_inventory do
-        local stack = from_inventory[i]
+    local self_player = to_inventory.player_owner
+    local fits_all, items
 
-        if not stack.valid_for_read
-        or not PlayersInventory.selected(stack.name, filters) then
+    for _, button in pairs(parent.grid.children) do
+        if button.style.name ~= "filter_inventory_slot" then
             goto continue
         end
 
-        fit_all = PlayersInventory.take_stack(from_inventory, to_inventory, stack)
+        items = {name=button.tags.item_name, count=button.number}
+        fits_all = PlayersInventory.move_items(from_inventory, to_inventory, items)
 
-        if not fit_all then
-            player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
-            return false
+        if fits_all then
+            button.destroy()
+            PlayersInventory.decrise_selected(self_player.index, from_inventory.player_owner.index)
+        else
+            button.number = from_inventory.get_item_count(button.tags.item_name)
+            break
         end
 
         ::continue::
     end
 
-    return true
+    local buttons, fillers = {}, {}
+
+    for _, button in pairs(parent.grid.children) do
+        if button.sprite ~= "" then
+            table.insert(buttons, button)
+        else
+            table.insert(fillers, button)
+        end    
+    end
+
+    if #buttons > 0 then
+        local fillers_count = 10 - #buttons % 10
+
+        if fillers_count == 0 or fillers_count == 10 then
+            for _, filler in pairs(fillers) do
+                filler.destroy()
+            end
+        elseif #fillers < fillers_count then
+            local index = fillers_count - #fillers
+
+            while index > 0 do
+                PlayersInventory.build_inventory_button{grid=parent.grid}
+                index = index - 1
+            end
+        elseif #fillers > fillers_count then
+            local index = #fillers
+
+            while index > #fillers - fillers_count do
+                fillers[index].destroy()
+                index = index - 1
+            end
+        end
+    else
+        parent.visible = false
+    end
+
+    return fits_all
 end
 
-function PlayersInventory.take_ammunition_inventory(from_inventories, to_inventory, filters)
-    local armor_inventory = from_inventories[1]
-    local guns_inventory = from_inventories[2]
-    local ammo_inventory = from_inventories[3]
+function PlayersInventory.take_ammunition_inventory(from_inventories, to_inventory, parent)
+    -- local armor_inventory = from_inventories[1]
+    -- local guns_inventory = from_inventories[2]
+    -- local ammo_inventory = from_inventories[3]
 
-    local player = to_inventory.player_owner
-    local fit_all
+    -- local player = to_inventory.player_owner
+    -- local fit_all
 
-    if in_single then
-        player = armor_inventory.player_owner
-    end
+    -- if in_single then
+    --     player = armor_inventory.player_owner
+    -- end
 
     
-    -- Armor ----------------------------------------------------------------------------------------------------------
+    -- -- Armor ----------------------------------------------------------------------------------------------------------
 
-    local stack = armor_inventory[1]
+    -- local stack = armor_inventory[1]
 
-    if stack.valid_for_read
-    and PlayersInventory.match_and_selected(filters.children[1], stack.name) then
-        fit_all = PlayersInventory.take_stack(armor_inventory, to_inventory, stack)
+    -- if stack.valid_for_read
+    -- and PlayersInventory.match_and_selected(filters.children[1], stack.name) then
+    --     fit_all = PlayersInventory.take_stack(armor_inventory, to_inventory, stack)
 
-        if not fit_all then
-            player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
-            return
-        end
-    end
-
-
-    -- Guns -----------------------------------------------------------------------------------------------------------
-
-    for i = 1, #guns_inventory do
-        local stack = guns_inventory[i]
-
-        if stack.valid_for_read
-        and PlayersInventory.match_and_selected(filters.children[i+1], stack.name) then
-            fit_all = PlayersInventory.take_stack(guns_inventory, to_inventory, stack)
-
-            if not fit_all then
-                player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
-                return
-            end
-        end
-    end
+    --     if not fit_all then
+    --         player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
+    --         return
+    --     end
+    -- end
 
 
-    -- Ammo -----------------------------------------------------------------------------------------------------------
+    -- -- Guns -----------------------------------------------------------------------------------------------------------
 
-    for i = 1, #ammo_inventory do
-        local stack = ammo_inventory[i]
+    -- for i = 1, #guns_inventory do
+    --     local stack = guns_inventory[i]
 
-        if stack.valid_for_read
-        and PlayersInventory.match_and_selected(filters.children[i+11], stack.name) then
-            fit_all = PlayersInventory.take_stack(ammo_inventory, to_inventory, stack)
+    --     if stack.valid_for_read
+    --     and PlayersInventory.match_and_selected(filters.children[i+1], stack.name) then
+    --         fit_all = PlayersInventory.take_stack(guns_inventory, to_inventory, stack)
 
-            if not fit_all then
-                player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
-                return
-            end
-        end
-    end
+    --         if not fit_all then
+    --             player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
+    --             return
+    --         end
+    --     end
+    -- end
+
+
+    -- -- Ammo -----------------------------------------------------------------------------------------------------------
+
+    -- for i = 1, #ammo_inventory do
+    --     local stack = ammo_inventory[i]
+
+    --     if stack.valid_for_read
+    --     and PlayersInventory.match_and_selected(filters.children[i+11], stack.name) then
+    --         fit_all = PlayersInventory.take_stack(ammo_inventory, to_inventory, stack)
+
+    --         if not fit_all then
+    --             player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
+    --             return
+    --         end
+    --     end
+    -- end
 end
 
 function PlayersInventory.take_items(self_player, button, one_stack)
@@ -971,7 +1012,6 @@ function PlayersInventory.take_items(self_player, button, one_stack)
     local from_player = game.players[button.tags.player_index]
     local from_inventory = from_player.get_inventory(inventory_type)
     local self_inventory = self_player.get_main_inventory()
-    local selected = PlayersInventory.players_data[self_player.index].selected or {}
     local items
 
     if one_stack then
@@ -986,9 +1026,6 @@ function PlayersInventory.take_items(self_player, button, one_stack)
         if button.tags.inventory_type ~= "armor" and button.tags.inventory_type ~= "guns" then
             button.number = from_inventory.get_item_count(button.tags.item_name)
         end
-
-        self_player.play_sound{path="utility/cannot_build"}
-        self_player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
     else
         self_player.play_sound{path="utility/inventory_move"}
 
@@ -1001,7 +1038,7 @@ function PlayersInventory.take_items(self_player, button, one_stack)
             end
 
             if button.style.name == "filter_inventory_slot" then
-                selected[from_player.name] = selected[from_player.name] - 1
+                PlayersInventory.decrise_selected(self_player.index, from_player.index)
             end
 
             local fillers = {}
@@ -1031,8 +1068,8 @@ function PlayersInventory.take_items(self_player, button, one_stack)
             end
         else
             if button.style.name == "filter_inventory_slot" then
+                PlayersInventory.decrise_selected(self_player.index, from_player.index)
                 button.style = "inventory_slot"
-                selected[from_player.name] = selected[from_player.name] - 1
             end
 
             if button.tags.inventory_type == "armor" then
@@ -1046,17 +1083,13 @@ function PlayersInventory.take_items(self_player, button, one_stack)
             button.tooltip = nil
             button.ignored_by_interaction = true
         end
-
-        local window = PlayersInventory.players_data[self_player.index].window
-        local tab = window.players_inventory_tabs.tabs[window.players_inventory_tabs.selected_tab_index]
-        local panel = tab.content.players.list[from_player.name]
-        local take_selected_button = panel.content.buttons.players_inventory_take_selected_button
-        take_selected_button.enabled = ((selected[from_player.name] or 0) > 0)
     end
 end
 
 function PlayersInventory.move_items(from_inventory, to_inventory, items)
     if not to_inventory.can_insert(items) then
+        to_inventory.player_owner.play_sound{path="utility/cannot_build"}
+        to_inventory.player_owner.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
         return false
     end
 
@@ -1072,6 +1105,11 @@ function PlayersInventory.move_items(from_inventory, to_inventory, items)
 
     if from_inventory.get_item_count(name) == 0 then
         return true
+    end
+
+    if inserted < count then
+        to_inventory.player_owner.play_sound{path="utility/cannot_build"}
+        to_inventory.player_owner.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
     end
 
     return (inserted == count)
@@ -1164,6 +1202,33 @@ function PlayersInventory.unban(target_player)
     PlayersInventory.remove(global.players_inventory_banned, target_player.index)
 end
 
+
+function PlayersInventory.incrise_selected(self_index, target_index)
+    local target_player = game.players[target_index]
+    local player_data = PlayersInventory.players_data[self_index]
+    local selected_count = player_data.selected[target_player.name]
+    player_data.selected[target_player.name] = selected_count + 1
+    print("incrised - " .. player_data.selected[target_player.name])
+
+    local current_tab = PlayersInventory.players_data[self_index].current_tab
+    local buttons = current_tab.players.list[target_player.name].content.buttons
+    buttons.players_inventory_take_selected_button.enabled = true
+end
+
+function PlayersInventory.decrise_selected(self_index, target_index)
+    local target_player = game.players[target_index]
+    local player_data = PlayersInventory.players_data[self_index]
+    local selected_count = player_data.selected[target_player.name]
+    selected_count = selected_count - 1
+    player_data.selected[target_player.name] = selected_count
+    print("decrised - " .. selected_count)
+
+    local current_tab = PlayersInventory.players_data[self_index].current_tab
+    local buttons = current_tab.players.list[target_player.name].content.buttons
+    buttons.players_inventory_take_selected_button.enabled = (selected_count > 0)
+end
+
+
 function PlayersInventory.remove(list, item)
     for index = 1, #list do
         if list[index] == item then
@@ -1172,30 +1237,6 @@ function PlayersInventory.remove(list, item)
         end
     end
 end
-
-
-
-
-
-
-function PlayersInventory.selected(item_name, filters)
-    for i = 1, #filters.children do
-        local button = filters.children[i]
-
-        if button.sprite and PlayersInventory.match_and_selected(button, item_name) then
-            return true
-        end
-    end
-
-    return false
-end
-
-function PlayersInventory.match_and_selected(button, item_name)
-    local item_name = string.gsub(item_name, "%-", "%%-")
-    return string.match(button.sprite, item_name) and button.style.name == "filter_inventory_slot"
-end
-
-
 
 
 
@@ -1214,12 +1255,13 @@ function PlayersInventory.on_configuration_changed(data)
     PlayersInventory.on_init()
     
     for _, player in pairs(game.players) do
-        local player_filters = global.players_inventory_filters[player.index]
+        local player_filters = global.players_inventory_filters[player.index] or {}
 
-        player_filters = player_filters or {}
         player_filters.favorites = player_filters.favorites or {}
         player_filters.tab_index = player_filters.tab_index or 1
         player_filters.role_index = player_filters.role_index or 1
+
+        global.players_inventory_filters[player.index] = player_filters
 
         PlayersInventory.create_toggle_button(player)
     end
@@ -1310,15 +1352,17 @@ function PlayersInventory.on_gui_selected_tab_changed(event)
 
     local tabbed_pane = event.element
     local player_filters = global.players_inventory_filters[event.player_index]
+    local player_data = PlayersInventory.players_data[event.player_index]
 
     player_filters.tab_index = tabbed_pane.selected_tab_index
+    players_data.current_tab = tabbed_pane.tabs[tabbed_pane.selected_tab_index].content
 
-    for index, tab in pairs(tabbed_pane.tabs) do
-        if index ~= tabbed_pane.selected_tab_index then
-            tab.content.players.visible = false
-            tab.content.placeholder.visible = false
-        end
-    end
+    -- for index, tab in pairs(tabbed_pane.tabs) do
+    --     if index ~= tabbed_pane.selected_tab_index then
+    --         tab.content.players.visible = false
+    --         tab.content.placeholder.visible = false
+    --     end
+    -- end
 
     PlayersInventory.settingup_and_fill_current_tab(event.player_index)
 end
@@ -1366,10 +1410,8 @@ function PlayersInventory.on_expand_panel(event)
         button.hovered_sprite = "utility/expand_dark"
         button.clicked_sprite = "utility/expand_dark"
 
-        if player_data.selected then
-            player_data.selected[panel.get_index_in_parent()] = nil
-            panel.content.buttons.players_inventory_take_selected_button.enabled = false
-        end
+        player_data.selected[target_player.name] = nil
+        panel.content.buttons.players_inventory_take_selected_button.enabled = false
     else
         button.sprite = "utility/collapse"
         button.hovered_sprite = "utility/collapse_dark"
@@ -1377,6 +1419,8 @@ function PlayersInventory.on_expand_panel(event)
 
         PlayersInventory.fill_inventories_grids(panel.content.inventories, self_player, target_player)
         panel.parent.scroll_to_element(panel)
+
+        player_data.selected[target_player.name] = 0
     end
 
     panel.content.visible = not panel.content.visible
@@ -1403,17 +1447,16 @@ function PlayersInventory.on_favorite_click(event)
         PlayersInventory.unfavorite(event.player_index, element.tags.player_index)
 
         local window = PlayersInventory.players_data[event.player_index].window
-        local tab_index = window.players_inventory_tabs.selected_tab_index
+        local current_tab = PlayersInventory.players_data[event.player_index].current_tab
 
-        if tab_index == 6 then
+        if current_tab.name == "favorites" then
             target_player = game.players[element.tags.player_index]
 
             if PlayersInventory.players_data[event.player_index].selected then
                 PlayersInventory.players_data[event.player_index].selected[target_player.name] = nil
             end
 
-            local tab_content = window.players_inventory_tabs.tabs[tab_index].content
-            tab_content.players.list[target_player.name].destroy()
+            current_tab.players.list[target_player.name].destroy()
             
             if #tab_content.players.list.children > 0 then
                 tab_content.players.count.caption = {
@@ -1431,6 +1474,7 @@ function PlayersInventory.on_favorite_click(event)
         end
     else
         PlayersInventory.favorite(event.player_index, element.tags.player_index)
+
         element.sprite = "players_inventory_unfavorite_white"
         element.hovered_sprite = "players_inventory_unfavorite_black"
         element.clicked_sprite = "players_inventory_unfavorite_black"
@@ -1445,30 +1489,28 @@ function PlayersInventory.on_mute_click(event)
     local target_player = game.players[event.element.tags.player_index]
     local muted = global.players_inventory_muted
     local element = event.element
-    local window = PlayersInventory.players_data[event.player_index].window
-    local tabs = window.players_inventory_tabs
-    local tab_content = window.players_inventory_tabs.tabs[tabs.selected_tab_index].content
+    local current_tab = PlayersInventory.players_data[event.player_index].current_tab
 
     if PlayersInventory.is_muted(target_player.index) then
         PlayersInventory.unmute(target_player)
 
-        if tabs.selected_tab_index == 4 then
+        if current_tab.name == "muted" then
             if PlayersInventory.players_data[event.player_index].selected then
                 PlayersInventory.players_data[event.player_index].selected[target_player.name] = nil
             end
 
-            tab_content.players.list[target_player.name].destroy()
+            current_tab.players.list[target_player.name].destroy()
             
-            if #tab_content.players.list.children > 0 then
-                tab_content.players.count.caption = {
-                    "players-inventory.caption-count", #tab_content.players.list.children
+            if #current_tab.players.list.children > 0 then
+                current_tab.players.count.caption = {
+                    "players-inventory.caption-count", #current_tab.players.list.children
                 }
             else
-                tab_content.players.visible = false
-                tab_content.placeholder.visible = true
+                current_tab.players.visible = false
+                current_tab.placeholder.visible = true
             end
         else
-            tab_content.players.list[target_player.name].header.muted.visible = false
+            current_tab.players.list[target_player.name].header.muted.visible = false
 
             element.sprite = "players_inventory_mute_white"
             element.hovered_sprite = "players_inventory_mute_black"
@@ -1478,7 +1520,7 @@ function PlayersInventory.on_mute_click(event)
     else
         PlayersInventory.mute(target_player)
 
-        tab_content.players.list[target_player.name].header.muted.visible = true
+        current_tab.players.list[target_player.name].header.muted.visible = true
         
         element.sprite = "players_inventory_unmute_white"
         element.hovered_sprite = "players_inventory_unmute_black"
@@ -1494,24 +1536,22 @@ function PlayersInventory.on_ban_click(event)
     if PlayersInventory.is_banned(target_player.index) then
         PlayersInventory.unban(target_player)
 
-        local window = PlayersInventory.players_data[event.player_index].window
-        local tab_index = window.players_inventory_tabs.selected_tab_index
+        local current_tab = PlayersInventory.players_data[event.player_index].current_tab
 
-        if tab_index == 5 then
+        if current_tab.name == "banned" then
             if PlayersInventory.players_data[event.player_index].selected then
                 PlayersInventory.players_data[event.player_index].selected[target_player.name] = nil
             end
 
-            local tab_content = window.players_inventory_tabs.tabs[tab_index].content
-            tab_content.players.list[target_player.name].destroy()
+            current_tab.players.list[target_player.name].destroy()
             
-            if #tab_content.players.list.children > 0 then
-                tab_content.players.count.caption = {
-                    "players-inventory.caption-count", #tab_content.players.list.children
+            if #current_tab.players.list.children > 0 then
+                current_tab.players.count.caption = {
+                    "players-inventory.caption-count", #current_tab.players.list.children
                 }
             else
-                tab_content.players.visible = false
-                tab_content.placeholder.visible = true
+                current_tab.players.visible = false
+                current_tab.placeholder.visible = true
             end
         else
             element.sprite = "players_inventory_ban_white"
@@ -1568,24 +1608,13 @@ function PlayersInventory.on_inventory_item_click(event)
     elseif event.button == 4 and self_player.admin then
         local target_player = game.players[button.tags.player_index]
 
-        if not PlayersInventory.players_data[self_player.index].selected then
-            PlayersInventory.players_data[self_player.index].selected = {}
-        end
-
-        local selected = PlayersInventory.players_data[self_player.index].selected
-        selected[target_player.name] = selected[target_player.name] or 0
-
         if button.style.name == "inventory_slot" then
             button.style = "filter_inventory_slot"
-            selected[target_player.name] = selected[target_player.name] + 1
+            PlayersInventory.incrise_selected(self_player.index, button.tags.player_index)
         else
             button.style = "inventory_slot"
-            selected[target_player.name] = selected[target_player.name] - 1
+            PlayersInventory.decrise_selected(self_player.index, button.tags.player_index)
         end
-
-        local tabs = PlayersInventory.players_data[self_player.index].window.players_inventory_tabs
-        local panel = tabs.tabs[tabs.selected_tab_index].content.players.list[target_player.name]
-        panel.content.buttons.players_inventory_take_selected_button.enabled = (selected[target_player.name] > 0)
     end
 end
 
@@ -1600,47 +1629,24 @@ function PlayersInventory.on_take_selected_click(event)
     local to_player = game.players[event.player_index]
     local to_inventory = to_player.get_main_inventory()
 
-    local window = game.players[event.player_index].gui.screen["players-inventory-window"]
-    local panel = window["main-flow"].children[to_player.name]["content"]
-    local take_button = panel["buttons"]["take-player-inventory-button"]
-    local buttons = panel["inventories"]
-    local main_buttons = buttons["main-inventory"]["grid"]
-    local ammunition_buttons = buttons["ammunition-inventory"]["grid"]
-    local trash_buttons = buttons["trash-inventory"]["grid"]
+    local panel = PlayersInventory.players_data[to_player.index].current_tab.players.list[from_player.name]
+    local main_parent = panel.content.inventories.main
+    local ammunition_parent = panel.content.inventories.ammunition
+    local trash_parent = panel.content.inventories.trash
 
-
-    if in_single then
-        local chests = to_player.surface.find_entities_filtered{radius=5, name="steel-chest"}
-
-        if #chests == 0 then
-            print("Поставь сундук!")
-            return
-        end
-
-        to_inventory = chests[1].get_inventory(defines.inventory.chest)
+    if not PlayersInventory.take_common_inventory(main_inventory, to_inventory, main_parent) then
+        return
     end
 
-    if not PlayersInventory.take_common_inventory(main_inventory, to_inventory, main_buttons) then
-        goto exit
-    end
-
-    if not PlayersInventory.take_common_inventory(trash_inventory, to_inventory, trash_buttons) then
-        goto exit
+    if not PlayersInventory.take_common_inventory(trash_inventory, to_inventory, trash_parent) then
+        return
     end
 
     PlayersInventory.take_ammunition_inventory(
         {armor_inventory, guns_inventory, ammo_inventory},
         to_inventory,
-        ammunition_buttons
+        ammunition_parent
     )
-
-    ::exit::
-
-    take_button.enabled = false
-    global.selected_items_count[to_player.index][to_player.name] = 0
-
-    -- TODO: Сделать перестройку только того инвентаря, из которого были изъяты предметы
-    PlayersInventory.fill_inventories_grids(buttons, to_player, from_player)
 end
 
 
@@ -1684,7 +1690,7 @@ PlayersInventory.players_inventory_gui_click_events = {
     ["players_inventory_cancel_punishment_button"] = PlayersInventory.on_punishment_closecancel,
     ["players_inventory_close_accept_prompt_window_button"] = PlayersInventory.on_punishment_closecancel,
 
-    ["players_inventory_take_selected"] = PlayersInventory.on_take_selected_click
+    ["players_inventory_take_selected_button"] = PlayersInventory.on_take_selected_click
 }
 
 
