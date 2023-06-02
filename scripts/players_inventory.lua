@@ -6,7 +6,7 @@ local mod_gui = require("__core__/lualib/mod-gui")
 
 -- Constans and variables ----------------------------------------------------------------------------------------------
 
-local in_debug = true
+local in_debug = false
 local in_single = false
 
 local PlayersInventory = {}
@@ -57,7 +57,7 @@ function PlayersInventory.build_players_inventory_window(player)
 
     local window = player.gui.screen.add{type="frame", name="players_inventory_window", direction="vertical"}
     window.style.width = 900
-    window.style.maximal_height = 850
+    window.style.maximal_height = 950
 
 
     -- Header --
@@ -534,6 +534,18 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
     trash_inventory.add{type="label", caption={"players-inventory.label-trash-inventory"}, style="heading_2_label"}
     trash_inventory.add{type="table", name="grid", column_count=10, tags={counter=1}}
 
+    local trash_inventory = inventories.add{type="flow", name="give", direction="vertical", visible=self_player.admin}
+    trash_inventory.style.top_margin = 12
+    trash_inventory.add{type="label", caption={"players-inventory.label-give"}, style="heading_2_label"}
+    local give_button = trash_inventory.add{
+        type = "sprite-button",
+        name = "players_inventory_give_button",
+        style = "inventory_slot",
+        tags = {player_index=target_player.index}
+    }
+    give_button.style.width = 435
+    give_button.style.height = 85
+
     line = content.add{type="line", direction="horizontal"}
     line.style.top_margin = 12
 
@@ -549,7 +561,7 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
     buttons.add{
         type = "button",
         name = "players_inventory_take_selected_button",
-        caption = {"players-inventory.caption-take"},
+        caption = {"players-inventory.caption-button-take-selected"},
         enabled = false,
         tags = {player_index=target_player.index}
     }
@@ -705,8 +717,21 @@ function PlayersInventory.build_inventory_button(params)
 
     local tooltip
 
-    if params.admin then
-        tooltip = {"players-inventory.tooltip-inventory-button"}
+    if params.admin and params.tags then
+        if params.armor then
+            tooltip = {
+                "players-inventory.tooltip-button-armor",
+                {"players-inventory.tooltip-button-armor-only-show"}
+            }
+        elseif params.tags.inventory_type == "guns" then
+            tooltip = {"players-inventory.tooltip-button-weapon"}
+        elseif params.tags.inventory_type == "ammo" then
+            tooltip = {"players-inventory.tooltip-button-ammo"}
+        else
+            tooltip = {"players-inventory.tooltip-button-items"}
+        end
+    elseif params.armor then
+        tooltip = {"players-inventory.tooltip-button-armor-only-show"}
     end
 
     local button = params.grid.add{
@@ -903,15 +928,13 @@ function PlayersInventory.take_common_inventory(from_inventory, to_inventory, pa
 
     local self_player = to_inventory.player_owner
     local fits_all = true
-    local items
 
     for _, button in pairs(parent.grid.children) do
         if button.style.name ~= "filter_inventory_slot" then
             goto continue
         end
 
-        items = {name=button.tags.item_name, count=(button.number or 1)}
-        fits_all = PlayersInventory.move_items(from_inventory, to_inventory, items)
+        fits_all = PlayersInventory.move_items(from_inventory, to_inventory, button.tags.item_name)
 
         if fits_all then
             button.destroy()
@@ -971,9 +994,9 @@ function PlayersInventory.take_amunition_inventories(from_inventories, to_invent
     -- Armor ----------------------------------------------------------------------------------------------------------
 
     if parent.grid.children[1].style.name == "filter_inventory_slot" then
-        local items = {name=parent.grid.children[1].tags.item_name, count=1}
+        local item_name = parent.grid.children[1].tags.item_name
 
-        if PlayersInventory.move_items(from_inventories[1], to_inventory, items) then
+        if PlayersInventory.move_items(from_inventories[1], to_inventory, item_name) then
             PlayersInventory.decrise_selected(to_player.index, from_player.index)
             parent.grid.children[1].style = "inventory_slot"
             parent.grid.children[1].sprite = "utility/slot_icon_armor"
@@ -988,9 +1011,9 @@ function PlayersInventory.take_amunition_inventories(from_inventories, to_invent
 
     for index = 2, 4 do
         if parent.grid.children[index].style.name == "filter_inventory_slot" then
-            local items = {name=parent.grid.children[index].tags.item_name, count=1}
+            local item_name = parent.grid.children[index].tags.item_name
 
-            if PlayersInventory.move_items(from_inventories[2], to_inventory, items) then
+            if PlayersInventory.move_items(from_inventories[2], to_inventory, item_name) then
                 PlayersInventory.decrise_selected(to_player.index, from_player.index)
                 parent.grid.children[index].style = "inventory_slot"
                 parent.grid.children[index].sprite = "utility/slot_icon_gun"
@@ -1006,9 +1029,9 @@ function PlayersInventory.take_amunition_inventories(from_inventories, to_invent
 
     for index = 12, 14 do
         if parent.grid.children[index].style.name == "filter_inventory_slot" then
-            local items = {name=parent.grid.children[index].tags.item_name, count=parent.grid.children[index].number}
+            local item_name = parent.grid.children[index].tags.item_name
 
-            if PlayersInventory.move_items(from_inventories[3], to_inventory, items) then
+            if PlayersInventory.move_items(from_inventories[3], to_inventory, item_name) then
                 PlayersInventory.decrise_selected(to_player.index, from_player.index)
                 parent.grid.children[index].style = "inventory_slot"
                 parent.grid.children[index].sprite = "utility/slot_icon_ammo"
@@ -1026,15 +1049,7 @@ function PlayersInventory.take_items(self_player, button, one_stack)
     local from_player = game.players[button.tags.player_index]
     local from_inventory = from_player.get_inventory(inventory_type)
     local self_inventory = self_player.get_main_inventory()
-    local items
-
-    if one_stack then
-        items, _ = from_inventory.find_item_stack(button.tags.item_name)
-    else
-        items = {name=button.tags.item_name, count=from_inventory.get_item_count(button.tags.item_name)}
-    end
-
-    local fits_all = PlayersInventory.move_items(from_inventory, self_inventory, items)
+    local fits_all = PlayersInventory.move_items(from_inventory, self_inventory, button.tags.item_name, one_stack)
 
     if not fits_all then
         if button.tags.inventory_type ~= "armor" and button.tags.inventory_type ~= "guns" then
@@ -1101,9 +1116,95 @@ function PlayersInventory.take_items(self_player, button, one_stack)
     end
 end
 
-function PlayersInventory.move_items(from_inventory, to_inventory, items)
-    if not items then
-        to_inventory.player_owner.print("Произошла нелепая ошибка.")
+function PlayersInventory.give_items(self_player, to_player)
+    local to_inventory = to_player.get_main_inventory()
+    local stack = self_player.cursor_stack
+
+    if not to_inventory.can_insert(stack) then
+        self_player.play_sound{path="utility/cannot_build"}
+        self_player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
+        return
+    end
+
+    local item_name = stack.name
+    local count = stack.count
+    local inserted = to_inventory.insert(stack)
+
+    if inserted < count then
+        stack.count = count - inserted
+
+        if not to_inventory.can_insert(stack) then
+            self_player.play_sound{path="utility/cannot_build"}
+            self_player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
+        else
+            inserted = inserted + to_inventory.insert(stack)
+            stack.count = count - inserted
+        end
+    end
+
+    if inserted == count then
+        stack.clear()
+        self_player.clear_cursor()
+        self_player.play_sound{path="utility/inventory_move"}
+    end
+
+    local current_tab = PlayersInventory.players_data[self_player.index].current_tab
+    local grid = current_tab.players.list[to_player.name].content.inventories.main.grid
+
+    local new = true
+    local filler_index = 0
+
+    for index, button in pairs(grid.children) do
+        if button.tags.item_name == item_name then
+            button.number = button.number + inserted
+            new = false
+        elseif button.sprite == "" then
+            filler_index = index
+            break
+        end
+    end
+
+    if new then
+        local tags = {
+            player_index = to_player.index,
+            inventory_type = "main",
+            item_name = item_name
+        }
+
+        PlayersInventory.build_inventory_button{
+            grid=grid, sprite="item/"..item_name, tags=tags, amount=count, admin=self_player.admin
+        }
+
+        if filler_index > 0 then
+            grid.swap_children(#grid.children, filler_index)
+            grid.children[#grid.children].destroy()
+        else
+            for _ = 1, 9 do
+                PlayersInventory.build_inventory_button{grid=grid}
+            end
+
+            grid.parent.visible = true
+        end
+    end
+end
+
+function PlayersInventory.move_items(from_inventory, to_inventory, item_name, one_stack)
+    local items
+
+    if one_stack then
+        items, _ = from_inventory.find_item_stack(item_name)
+    else
+        items = {name=item_name, count=from_inventory.get_item_count(item_name)}
+    end
+
+    if not items or items.count == 0 then
+        to_inventory.player_owner.play_sound{path="utility/cannot_build"}
+        to_inventory.player_owner.print({
+            "players-inventory.message-no-items",
+            from_inventory.player_owner.name,
+            "[img=item."..item_name.."]",
+            item_name
+        })
         return true
     end
 
@@ -1468,6 +1569,7 @@ function PlayersInventory.on_follow_player(event)
     end
 
     PlayersInventory.players_data[event.player_index].window.destroy()
+    PlayersInventory.players_data[event.player_index] = nil
     game.players[event.player_index].zoom_to_world(character.position, 1.0, character)
 end
 
@@ -1526,6 +1628,8 @@ function PlayersInventory.on_promotion_click(event)
         event.element.clicked_sprite = "players_inventory_promote_black"
         event.element.tooltip = {"players-inventory.tooltip-promote"}
         panel.header.manager.visible = false
+
+        game.print({"players-inventory.message-demoted", target_player.name})
     else
         target_player.permission_group = game.permissions.get_group("Manager")
         event.element.sprite = "players_inventory_demote_white"
@@ -1533,6 +1637,8 @@ function PlayersInventory.on_promotion_click(event)
         event.element.clicked_sprite = "players_inventory_demote_black"
         event.element.tooltip = {"players-inventory.tooltip-demote"}
         panel.header.manager.visible = true
+
+        game.print({"players-inventory.message-promoted", target_player.name})
     end
 end
 
@@ -1604,6 +1710,8 @@ function PlayersInventory.on_ban_click(event)
                 current_tab.placeholder.visible = true
             end
         else
+            current_tab.players.list[target_player.name].header.banned.visible = false
+
             element.sprite = "players_inventory_ban_white"
             element.hovered_sprite = "players_inventory_ban_black"
             element.clicked_sprite = "players_inventory_ban_black"
@@ -1666,6 +1774,22 @@ function PlayersInventory.on_inventory_item_click(event)
             PlayersInventory.decrise_selected(self_player.index, button.tags.player_index)
         end
     end
+end
+
+function PlayersInventory.on_give_button_click(event)
+    local self_player = game.players[event.player_index]
+
+    if self_player.is_cursor_empty() then
+        return
+    end
+
+    if self_player.cursor_ghost then
+        return
+    end
+
+    local to_player = game.players[event.element.tags.player_index]
+
+    PlayersInventory.give_items(self_player, to_player)
 end
 
 function PlayersInventory.on_take_selected_click(event)
@@ -1745,6 +1869,7 @@ PlayersInventory.players_inventory_gui_click_events = {
     ["players_inventory_cancel_punishment_button"] = PlayersInventory.on_punishment_closecancel,
     ["players_inventory_close_accept_prompt_window_button"] = PlayersInventory.on_punishment_closecancel,
 
+    ["players_inventory_give_button"] = PlayersInventory.on_give_button_click,
     ["players_inventory_take_selected_button"] = PlayersInventory.on_take_selected_click
 }
 
