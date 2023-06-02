@@ -24,6 +24,9 @@ Statistics.tops = {
 	"miners",
 	"sueciders",
 	"railwaymans",
+	"runners",
+	"lumberjacks",
+	"mariobrothers"
 }
 	-- "oilmans",
 
