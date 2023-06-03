@@ -1,3 +1,5 @@
+-- @ Ajick 2023
+
 local Statistics = {}
 
 Statistics.counter = 1
@@ -13,17 +15,20 @@ Statistics.types = {
 }
 
 Statistics.tops = {
-	"builders",
-	"architectors",
-	"war_enginears",
-	"crafters",
-	"reparemans",
-	"wariors",
-	"tree_haters",
-	"rock_haters",
-	"miners",
-	"sueciders",
-	"railwaymans",
+	builders = "builders",
+	architectors = "architectors",
+	war_enginears = "war_enginears",
+	crafters = "crafters",
+	repairemans = "repairemans",
+	wariors = "wariors",
+	tree_haters = "tree_haters",
+	rock_haters = "rock_haters",
+	miners = "miners",
+	sueciders = "sueciders",
+	railwaymans = "railwaymans",
+	runners = "runners",
+	lumberjacks = "lumberjacks",
+	mariobrothers = "mariobrothers"
 }
 	-- "oilmans",
 
@@ -31,47 +36,42 @@ Statistics.tops = {
 
 -- Statistics calculation functions --
 
-function Statistics.calculate_builders()
+function Statistics.calculate_builders() -- NotImplemented
+end
+
+function Statistics.calculate_architectors() -- NotImplemented
+end
+
+function Statistics.calculate_war_enginears() -- NotImplemented
 	-- body
 end
 
-function Statistics.calculate_architectors()
+function Statistics.calculate_crafters() -- NotImplemented
+end
+
+function Statistics.calculate_repairemans() -- NotImplemented
+end
+
+function Statistics.calculate_wariors() -- NotImplemented
+end
+
+function Statistics.calculate_tree_haters() -- NotImplemented
 	-- body
 end
 
-function Statistics.calculate_war_enginears()
+function Statistics.calculate_rock_haters() -- NotImplemented
 	-- body
 end
 
-function Statistics.calculate_crafters()
+function Statistics.calculate_miners() -- NotImplemented
 	-- body
 end
 
-function Statistics.calculate_reparemans()
+function Statistics.calculate_sueciders() -- NotImplemented
 	-- body
 end
 
-function Statistics.calculate_wariors()
-	-- body
-end
-
-function Statistics.calculate_tree_haters()
-	-- body
-end
-
-function Statistics.calculate_rock_haters()
-	-- body
-end
-
-function Statistics.calculate_miners()
-	-- body
-end
-
-function Statistics.calculate_sueciders()
-	-- body
-end
-
-function Statistics.calculate_railwaymans()
+function Statistics.calculate_railwaymans() -- NotImplemented
 	-- body
 end
 
@@ -79,7 +79,7 @@ end
 
 -- Statistics utility functions --
 
-function Statistics.get_players_default_rawdata()
+function Statistics.get_player_default_rawdata()
 	return {
 		[Statistics.types.builded] = {},
 		[Statistics.types.killed] = {},
@@ -91,21 +91,38 @@ function Statistics.get_players_default_rawdata()
 	}
 end
 
-function Statistics.get_player_rawdata_type(player_index, type_name)
+function Statistics.get_player_rawdata_type(player_index, type_id)
 	if not global.statistics then -- Blow on water
 		Statistics.on_init()
 	end
 
 	if not global.statistics.rawdata[player_index] then
-		global.statistics.rawdata[player_index] = Statistics.get_players_default_rawdata()
+		global.statistics.rawdata[player_index] = Statistics.get_player_default_rawdata()
 	end
 
-	if not global.statistics.rawdata[player_index][type_name] then
-		global.statistics.rawdata[player_index][type_name] = {}
+	if not global.statistics.rawdata[player_index][type_id] then
+		global.statistics.rawdata[player_index][type_id] = {}
 	end
 
-	return global.statistics.rawdata[player_index][type_name]
+	return global.statistics.rawdata[player_index][type_id]
 end
+
+function Statistics.get_rawdata_type(type_id)
+	return global.statistics.rawdata[type_id] or {}
+end
+
+function Statistics.get_top(top_id)
+	return global.statistics.tops[top_id] or {}
+end
+
+
+
+function Statistics.sort_and_set_top(top, top_id)
+	table.sort(top, function(first, second) return first.count > second.count end)
+	global.statistics.tops[top_id] = top
+end
+
+
 
 function Statistics.is_tree(entity_name)
 	return string.match(entity_name, "tree") or entity_name == "dead-grey-trunk"
@@ -164,8 +181,9 @@ function Statistics.on_nth_tick(event)
 end
 
 
+
 function Statistics.on_player_created(event)
-	global.statistics.rawdata[event.player_index] = Statistics.get_players_default_rawdata()
+	global.statistics.rawdata[event.player_index] = Statistics.get_player_default_rawdata()
 end
 
 function Statistics.on_player_joined_game(event)
@@ -189,6 +207,8 @@ function Statistics.on_player_died(event)
 	end
 end
 
+
+
 function Statistics.on_built_entity(event)
 	local builded = Statistics.get_player_rawdata_type(event.player_index, Statistics.types.builded)
 
@@ -203,7 +223,7 @@ end
 
 function Statistics.on_player_built_tile(event)
 	local builded = Statistics.get_player_rawdata_type(event.player_index, Statistics.types.builded)
-	builded[event.tiles.name] = (builded[event.tiles.name] or 0) + event.tiles.count
+	builded[event.tile.name] = (builded[event.tile.name] or 0) + #event.tiles
 end
 
 function Statistics.on_player_repaired_entity(event)
@@ -254,10 +274,18 @@ function Statistics.on_player_crafted_item(event)
 end
 
 function Statistics.on_player_changed_position(event)
-	local walk_distance = Statistics.get_player_rawdata_type(event.player_index, Statistics.types.walked)
-	local count = walk_distance[1] or 0
-	count = count + 1
-	walk_distance[1] = count
+	local walked = Statistics.get_player_rawdata_type(event.player_index, Statistics.types.walked)
+	local player = game.players[event.player_index]
+	local count, vehicle
+
+	if player.vehicle then
+		vehicle = player.vehicle.name
+	else
+		vehicle = "feet"
+	end
+
+	count = (walked[vehicle] or 0) + 1
+	walked[vehicle] = count
 end
 
 
@@ -277,7 +305,7 @@ end
 function on_reinit(event)
 	Statistics.on_init()
 
-	global.statistics[event.player_index] = Statistics.get_players_default_rawdata()
+	global.statistics[event.player_index] = Statistics.get_player_default_rawdata()
 
 	if global.profiler_gui then
 		global.profiler_gui.destroy()
@@ -288,6 +316,10 @@ function on_reinit(event)
 end
 
 function on_toggle_profiler(event)
+	if not game.players[event.player_index].admin then
+		return
+	end
+
 	if global.profiler_gui then
 		global.profiler_gui.destroy()
 		global.profiler_gui = nil
@@ -298,17 +330,22 @@ function on_toggle_profiler(event)
 	global.profiler_gui = game.players[event.player_index].gui.left.add{type="text-box", caption="New Profiler"}
 	global.profiler_gui.style.width = 400
 	global.profiler_gui.style.height = 600
+
+	printp(serpent.block(global.statistics.rawdata[event.player_index]))
 end
 
-function on_test(event)
-	printp(serpent.block(global.statistics[event.player_index]))
-	-- printp(serpent.block(Statistics.get_players_default_rawdata()))
+function on_printall(event)
+	printp(serpent.block(global.statistics.rawdata))
 end
 
+function on_printself(event)
+	printp(serpent.block(global.statistics.rawdata[event.player_index]))
+end
+
+-- commands.add_command("reinit", "", on_reinit)
 commands.add_command("profiler", "", on_toggle_profiler)
-commands.add_command("test", "", on_test)
-commands.add_command("reinit", "", on_reinit)
-
+commands.add_command("printall", "", on_printall)
+commands.add_command("printself", "", on_printself)
 
 
 
