@@ -36,23 +36,109 @@ Statistics.tops = {
 
 -- Statistics calculation functions --
 
-function Statistics.calculate_builders() -- NotImplemented
+function Statistics.calculate_builders()
+	local builded = Statistics.get_rawdata_type(Statistics.types.builded)
+	local top = {}
+
+	for player_index, items in pairs(builded) do
+		local record = {player_index=player_index, count=0}
+
+		for name, count in pairs(items) do
+			if name ~= "ghots" then
+				record.count = record.count + count
+			end
+		end
+
+		table.insert(top, record)
+	end
+
+	Statistics.sort_and_set_top(top, Statistics.tops.builders)
 end
 
-function Statistics.calculate_architectors() -- NotImplemented
+function Statistics.calculate_architectors()
+	local builded = Statistics.get_rawdata_type(Statistics.types.builded)
+	local top = {}
+
+	for player_index, items in pairs(builded) do
+		if not items.ghosts then
+			goto continue
+		end
+
+		local record = {player_index=player_index, count=0}
+
+		for _, count in pairs(items.ghosts) do
+			record.count = record.count + count
+		end
+
+		table.insert(top, record)
+
+		::continue::
+	end
+
+	Statistics.sort_and_set_top(top, Statistics.tops.architectors)
 end
 
 function Statistics.calculate_war_enginears() -- NotImplemented
 	-- body
 end
 
-function Statistics.calculate_crafters() -- NotImplemented
+function Statistics.calculate_crafters()
+	local crafted = Statistics.get_rawdata_type(Statistics.types.crafted)
+	local top = {}
+
+	for player_index, items in pairs(crafted) do
+		local record = {player_index=player_index, count=0}
+
+		for _, count in pairs(items) do
+			record.count = record.count + count
+		end
+
+		table.insert(top, record)
+	end
+
+	Statistics.sort_and_set_top(top, Statistics.tops.crafters)
 end
 
-function Statistics.calculate_repairemans() -- NotImplemented
+function Statistics.calculate_repairemans()
+	local repaired = Statistics.get_rawdata_type(Statistics.types.repaired)
+	local top = {}
+
+	for player_index, items in pairs(repaired) do
+		local record = {player_index=player_index, count=0}
+
+		for _, count in pairs(items) do
+			record.count = record.count + count
+		end
+
+		table.insert(top, record)
+	end
+
+	Statistics.sort_and_set_top(top, Statistics.tops.repairemans)
 end
 
-function Statistics.calculate_wariors() -- NotImplemented
+function Statistics.calculate_wariors()
+	local kiiled = Statistics.get_rawdata_type(Statistics.types.kiiled)
+	local top = {}
+
+	for player_index, items in pairs(kiiled) do
+		if not items.enemy then
+			goto continue
+		end
+
+		local record = {player_index=player_index, count=0}
+
+		for _, damages in pairs(items.enemy) do
+			for name, count in pairs(damages) do
+				record.count = record.count + count
+			end
+		end
+
+		table.insert(top, record)
+
+		::continue::
+	end
+
+	Statistics.sort_and_set_top(top, Statistics.tops.wariors)
 end
 
 function Statistics.calculate_tree_haters() -- NotImplemented
