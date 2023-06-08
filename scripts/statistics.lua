@@ -28,12 +28,15 @@ Statistics.top_names = {
 	"tree_haters",
 	"rock_haters",
 	"miners",
-	"sueciders",
+	"deaths",
 	"railwaymans",
 	"runners",
 	"lumberjacks",
 	"mariobrothers",
-	"oilmans"
+	"oilmans",
+	"roadworkers",
+	"electricians",
+	"fishermans"
 }
 Statistics.tops = {}
 for _, top_name in pairs(Statistics.top_names) do
@@ -252,21 +255,28 @@ function Statistics.calculate_miners()
 	Statistics.sort_and_set_top(top, Statistics.tops.miners)
 end
 
-function Statistics.calculate_sueciders()
+function Statistics.calculate_deaths()
 	local deaths = Statistics.get_raw_data_type(Statistics.types.deaths)
 	local top = {}
 
-	for player_index, couses in pairs(deaths) do
+	for player_index, forces in pairs(deaths) do
 		local record = {player_index=player_index, count=0}
 
-		for _, count in pairs(couses) do
-			record.count = record.count + count
+
+		for force_name, reasons in pairs(forces) do
+			if force_name ~= "unknown" then
+				for _, count in pairs(reasons) do
+					record.count = record.count + count
+				end
+			else
+				record.count = record.count + reasons
+			end
 		end
 
 		table.insert(top, record)
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.sueciders)
+	Statistics.sort_and_set_top(top, Statistics.tops.deaths)
 end
 
 function Statistics.calculate_railwaymans()
@@ -368,6 +378,57 @@ function Statistics.calculate_oilmans()
 	Statistics.sort_and_set_top(top, Statistics.tops.oilmans)
 end
 
+function Statistics.calculate_roadworkers()
+	local builded = Statistics.get_raw_data_type(Statistics.types.builded)
+	local top = {}
+
+	for player_index, items in pairs(builded) do
+		local record = {player_index=player_index, count=0}
+
+		for item_name, count in pairs(items) do
+			if Statistics.is_walkpath(item_name) then
+				record.count = record.count + count
+			end
+		end
+
+		table.insert(top, record)
+	end
+
+	Statistics.sort_and_set_top(top, Statistics.tops.roadworkers)
+end
+
+function Statistics.calculate_electricians()
+	local builded = Statistics.get_raw_data_type(Statistics.types.builded)
+	local top = {}
+
+	for player_index, items in pairs(builded) do
+		local record = {player_index=player_index, count=0}
+
+		for item_name, count in pairs(items) do
+			if Statistics.is_electric_pole(item_name) then
+				record.count = record.count + count
+			end
+		end
+
+		table.insert(top, record)
+	end
+
+	Statistics.sort_and_set_top(top, Statistics.tops.electricians)
+end
+
+function Statistics.calculate_fishermans()
+	local mined = Statistics.get_raw_data_type(Statistics.types.mined)
+	local top = {}
+
+	for player_index, items in pairs(mined) do
+		if items["raw-fish"] then
+			local record = {player_index=player_index, count=items["raw-fish"]}
+			table.insert(top, record)
+		end
+	end
+
+	Statistics.sort_and_set_top(top, Statistics.tops.fishermans)
+end
 
 
 -- Statistics utility functions --
@@ -386,15 +447,15 @@ function Statistics.get_player_raw_data_type(player_index, type_name)
 	return raw_data[player_index]
 end
 
-function Statistics.get_top(top_id)
-	return global.statistics.tops[top_id] or {}
+function Statistics.get_top(top_name)
+	return global.statistics.tops[top_name] or {}
 end
 
 
 
-function Statistics.sort_and_set_top(top, top_id)
+function Statistics.sort_and_set_top(top, top_name)
 	table.sort(top, function(first, second) return first.count > second.count end)
-	global.statistics.tops[top_id] = top
+	global.statistics.tops[top_name] = top
 end
 
 
@@ -404,7 +465,7 @@ function Statistics.is_tree(entity_name)
 end
 
 function Statistics.is_minable(entity_name)
-	return string.match(entity_name, "ore") or entity_name == "wood" or entity_name == "stone"
+	return string.match(entity_name, "ore") or entity_name == "stone" or entity_name == "coal"
 end
 
 function Statistics.is_rock(entity_name)
@@ -428,6 +489,17 @@ end
 
 function Statistics.is_pipe(entity_name)
 	return entity_name == "pipe" or entity_name == "pipe-to-ground"
+end
+
+function Statistics.is_electric_pole(entity_name)
+	return string.match(entity_name, "pole") or entity_name == "substation"
+end
+
+function Statistics.is_walkpath(entity_name)
+	return entity_name == "landfill" or entity_name == "stone-path"
+		or entity_name == "concrete" or entity_name == "refined-concrete"
+		or entity_name == "hazard-concrete-left" or entity_name == "hazard-concrete-right"
+		or entity_name == "refined-hazard-concrete-left" or entity_name == "refined-hazard-concrete-right"
 end
 
 
@@ -459,8 +531,8 @@ function Statistics.on_nth_tick(event)
 	Statistics["calculate_"..Statistics.top_names[Statistics.counter]]()
 	-- profiler.stop()
 	-- printp({"", Statistics.top_names[Statistics.counter], " - ", profiler})
-	local top_name = Statistics.top_names[Statistics.counter]
-	printp(top_name..":\n\n"..serpent.block(Statistics.get_top(top_name)))
+	-- local top_name = Statistics.top_names[Statistics.counter]
+	-- printp(top_name..":\n\n"..serpent.block(Statistics.get_top(top_name)))
 
 	if Statistics.counter < table_size(Statistics.tops) then
 		Statistics.counter = Statistics.counter + 1
@@ -486,9 +558,30 @@ function Statistics.on_player_died(event)
 	local deaths = Statistics.get_player_raw_data_type(event.player_index, Statistics.types.deaths)
 
 	if event.cause then
-		deaths[event.cause.name] = (deaths[event.cause.name] or 0) + 1
+		if event.cause.name == "character" then
+			local killed = Statistics.get_player_raw_data_type(event.cause.player.index, Statistics.types.killed)
+
+			if not killed.pvp then
+				killed.pvp = {}
+			end
+
+			killed.pvp[event.player_index] = (killed.pvp[event.player_index] or 0) + 1
+
+			if not deaths.pvp then
+				deaths.pvp = {}
+			end
+
+			deaths.pvp[event.cause.player.index] = (deaths.pvp[event.cause.player.index] or 0) + 1
+		else
+			if not deaths[event.cause.force.name] then
+				deaths[event.cause.force.name] = {}
+			end
+
+			local force_deaths = deaths[event.cause.force.name]
+			force_deaths[event.cause.name] = (force_deaths[event.cause.name] or 0) + 1
+		end
 	else
-		deaths.undefined = (deaths.undefined or 0) + 1
+		deaths.unknown = (deaths.unknown or 0) + 1
 	end
 end
 
@@ -522,11 +615,11 @@ function Statistics.on_player_repaired_entity(event)
 end
 
 function Statistics.on_entity_died(event)
-	if not event.force or event.force.name ~= "player" then
+	if not event.cause or event.cause.name ~= "character" then
 		return
 	end
 
-	if not event.cause or event.cause.name ~= "character" then
+	if event.entity.name == "character" then
 		return
 	end
 
@@ -540,10 +633,8 @@ function Statistics.on_entity_died(event)
 		killed[event.entity.force.name][event.entity.name] = {}
 	end
 
-	local entity = killed[event.entity.force.name][event.entity.name]
-	local count = entity[event.damage_type.name] or 0
-
-	entity[event.damage_type.name] = count + 1
+	local enemy = killed[event.entity.force.name][event.entity.name]
+	enemy[event.damage_type.name] = (enemy[event.damage_type.name] or 0) + 1
 end
 
 function Statistics.on_player_mined_item(event)
@@ -571,12 +662,62 @@ function Statistics.on_player_changed_position(event)
 	walked[vehicle] = count
 end
 
+function Statistics.on_top(event)
+	local self_player = game.players[event.player_index]
+
+	if not event.parameter or event.parameter == "list" then
+		self_player.print({"statistics.heading-1", {"statistics.all-categories"}})
+
+		for index, top_name in pairs(Statistics.top_names) do
+			self_player.print({
+				"", index, ". ",
+				{"statistics.heading-1", {"statistics."..top_name}}, " - ",
+				{"statistics."..top_name.."-info"}
+			})
+		end
+	else
+		local top_id = tonumber(event.parameter)
+
+		if not top_id or top_id % 1 > 0 or top_id < 0 or top_id > #Statistics.top_names then
+			self_player.print({"statistics.wrong-parameter"})
+			return
+		end
+
+		local top_name = Statistics.top_names[top_id]
+
+		-- Statistics["calculate_"..top_name]()
+
+		local top = Statistics.get_top(top_name)
+
+		if not top or not table_size(top) == 0 then
+			self_player.print({"statistics.no-data"})
+			return
+		end
+
+		local max_index = table_size(top)
+
+		if max_index > 10 then
+			max_index = 10
+		end
+
+		self_player.print({"statistics.heading-1", {"statistics."..top_name}}, {0.8, 0.8, 0})
+		self_player.print({"statistics.heading-3", {"statistics."..top_name.."-info"}}, {0.8, 0.8, 0.8})
+
+		for index = 1, max_index do
+			local player = game.players[top[index].player_index]
+			self_player.print(index..". "..player.name.." - "..top[index].count)
+		end
+	end
+end
+
 
 
 -- Profiler and debug --
 
 function on_reinit(event)
+	-- global.statistics = nil
 	Statistics.on_init()
+	-- global.statistics.raw_data.deaths = {}
 end
 
 function on_toggle_profiler(event)
@@ -598,7 +739,6 @@ function on_toggle_profiler(event)
 end
 
 function on_print(event)
-	-- Statistics.calculate_sueciders()
 	printp(serpent.block(global.statistics.raw_data))
 end
 
@@ -616,9 +756,9 @@ end
 
 
 
-commands.add_command("reinit", "", on_reinit)
-commands.add_command("profiler", "", on_toggle_profiler)
-commands.add_command("print", "", on_print)
+-- commands.add_command("reinit", "", on_reinit)
+-- commands.add_command("profiler", "", on_toggle_profiler)
+-- commands.add_command("print", "", on_print)
 
 
 
@@ -642,6 +782,9 @@ events.events = {
 }
 
 EventHandler.add_lib(events)
+
+
+commands.add_command("top", "", Statistics.on_top)
 
 
 
