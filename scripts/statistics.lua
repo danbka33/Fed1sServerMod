@@ -21,7 +21,7 @@ end
 Statistics.top_names = {
 	"builders",
 	"architectors",
-	"war_enginears",
+	"military_enginears",
 	"crafters",
 	"repairemans",
 	"wariors",
@@ -89,7 +89,7 @@ function Statistics.calculate_architectors()
 	Statistics.sort_and_set_top(top, Statistics.tops.architectors)
 end
 
-function Statistics.calculate_war_enginears()
+function Statistics.calculate_military_enginears()
 	local builded = Statistics.get_raw_data_type(Statistics.types.builded)
 	local top = {}
 
@@ -112,7 +112,7 @@ function Statistics.calculate_war_enginears()
 		table.insert(top, record)
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.war_enginears)
+	Statistics.sort_and_set_top(top, Statistics.tops.military_enginears)
 end
 
 function Statistics.calculate_crafters()
@@ -685,11 +685,11 @@ function Statistics.on_top(event)
 
 		local top_name = Statistics.top_names[top_id]
 
-		-- Statistics["calculate_"..top_name]()
+		Statistics["calculate_"..top_name]()
 
 		local top = Statistics.get_top(top_name)
 
-		if not top or not table_size(top) == 0 then
+		if not top or #top == 0 then
 			self_player.print({"statistics.no-data"})
 			return
 		end
@@ -767,8 +767,8 @@ end
 local events = {}
 events.on_init = Statistics.on_init
 events.on_configuration_changed = Statistics.on_configuration_changed
-events.on_nth_tick = {}
-events.on_nth_tick[180] = Statistics.on_nth_tick
+-- events.on_nth_tick = {}
+-- events.on_nth_tick[180] = Statistics.on_nth_tick
 events.events = {
 	[defines.events.on_player_joined_game] = Statistics.on_player_joined_game,
 	[defines.events.on_player_changed_position] = Statistics.on_player_changed_position,
