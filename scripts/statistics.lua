@@ -592,15 +592,13 @@ function Statistics.on_built_entity(event)
 
 	local builded = Statistics.get_player_raw_data_type(event.player_index, Statistics.types.builded)
 
-    if event.created_entity.valid then
-        if event.created_entity.name == "entity-ghost" then
-            builded.ghosts = builded.ghosts or {}
-            local count = builded.ghosts[event.created_entity.ghost_name] or 0
-            builded.ghosts[event.created_entity.ghost_name] = count + 1
-        else
-            builded[event.created_entity.name] = (builded[event.created_entity.name] or 0) + 1
-        end
-	end
+    if event.created_entity.name == "entity-ghost" then
+        builded.ghosts = builded.ghosts or {}
+        local count = builded.ghosts[event.created_entity.ghost_name] or 0
+        builded.ghosts[event.created_entity.ghost_name] = count + 1
+    else
+        builded[event.created_entity.name] = (builded[event.created_entity.name] or 0) + 1
+    end
 end
 
 function Statistics.on_player_built_tile(event)
@@ -691,7 +689,7 @@ end
 function Statistics.on_top(event)
 	local self_player = game.players[event.player_index]
 
-	if not event.parameter or event.parameter == "list" then
+	if not event.parameter or event.parameter == "" or event.parameter == "list" then
 		self_player.print({"statistics.heading-1", {"statistics.all-categories"}})
 
 		for index, top_name in pairs(Statistics.top_names) do
