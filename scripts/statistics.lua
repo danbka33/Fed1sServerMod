@@ -588,12 +588,14 @@ end
 function Statistics.on_built_entity(event)
 	local builded = Statistics.get_player_raw_data_type(event.player_index, Statistics.types.builded)
 
-	if event.created_entity.name == "entity-ghost" then
-		builded.ghosts = builded.ghosts or {}
-		local count = builded.ghosts[event.created_entity.ghost_name] or 0
-		builded.ghosts[event.created_entity.ghost_name] = count + 1
-	else
-		builded[event.created_entity.name] = (builded[event.created_entity.name] or 0) + 1
+    if event.created_entity.valid then
+        if event.created_entity.name == "entity-ghost" then
+            builded.ghosts = builded.ghosts or {}
+            local count = builded.ghosts[event.created_entity.ghost_name] or 0
+            builded.ghosts[event.created_entity.ghost_name] = count + 1
+        else
+            builded[event.created_entity.name] = (builded[event.created_entity.name] or 0) + 1
+        end
 	end
 end
 
