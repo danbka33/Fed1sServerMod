@@ -557,7 +557,7 @@ end
 function Statistics.on_player_died(event)
 	local deaths = Statistics.get_player_raw_data_type(event.player_index, Statistics.types.deaths)
 
-	if event.cause then
+	if event.cause and event.cause.valid then
 		if event.cause.name == "character" then
 			local killed = Statistics.get_player_raw_data_type(event.cause.player.index, Statistics.types.killed)
 
@@ -586,23 +586,37 @@ function Statistics.on_player_died(event)
 end
 
 function Statistics.on_built_entity(event)
+	if not event.created_entity or not event.created_entity.valid then
+		return
+	end
+
 	local builded = Statistics.get_player_raw_data_type(event.player_index, Statistics.types.builded)
 
-	if event.created_entity.name == "entity-ghost" then
-		builded.ghosts = builded.ghosts or {}
-		local count = builded.ghosts[event.created_entity.ghost_name] or 0
-		builded.ghosts[event.created_entity.ghost_name] = count + 1
-	else
-		builded[event.created_entity.name] = (builded[event.created_entity.name] or 0) + 1
+    if event.created_entity.valid then
+        if event.created_entity.name == "entity-ghost" then
+            builded.ghosts = builded.ghosts or {}
+            local count = builded.ghosts[event.created_entity.ghost_name] or 0
+            builded.ghosts[event.created_entity.ghost_name] = count + 1
+        else
+            builded[event.created_entity.name] = (builded[event.created_entity.name] or 0) + 1
+        end
 	end
 end
 
 function Statistics.on_player_built_tile(event)
+	if not event.tile or not event.tile.valid then
+		return
+	end
+
 	local builded = Statistics.get_player_raw_data_type(event.player_index, Statistics.types.builded)
 	builded[event.tile.name] = (builded[event.tile.name] or 0) + #event.tiles
 end
 
 function Statistics.on_player_repaired_entity(event)
+	if not event.entity or not event.entity.valid then
+		return
+	end
+
 	-- Counting not precisely, but tssss!
 
 	local repaired = Statistics.get_player_raw_data_type(event.player_index, Statistics.types.repaired)
@@ -615,11 +629,15 @@ function Statistics.on_player_repaired_entity(event)
 end
 
 function Statistics.on_entity_died(event)
-	if not event.cause or event.cause.name ~= "character" then
+	if not event.entity or not event.entity.valid or event.entity.name == "character" then
 		return
 	end
 
-	if event.entity.name == "character" then
+	if not event.cause or not event.cause.valid or event.cause.name ~= "character" then
+		return
+	end
+
+	if not event.damage_type or not event.damage_type.valid then
 		return
 	end
 
@@ -638,11 +656,19 @@ function Statistics.on_entity_died(event)
 end
 
 function Statistics.on_player_mined_item(event)
+	if not event.item_stack then
+		return
+	end
+
 	local mined = Statistics.get_player_raw_data_type(event.player_index, Statistics.types.mined)
 	mined[event.item_stack.name] = (mined[event.item_stack.name] or 0) + event.item_stack.count
 end
 
 function Statistics.on_player_crafted_item(event)
+	if not event.item_stack then
+		return
+	end
+
 	local crafted = Statistics.get_player_raw_data_type(event.player_index, Statistics.types.crafted)
 	crafted[event.item_stack.name] = (crafted[event.item_stack.name] or 0) + event.item_stack.count
 end

@@ -21,7 +21,7 @@ function Chests.on_character_corpse_expired(event)
 
         if corpseInventoryContents then
             for itemName, itemCount in pairs(corpseInventoryContents) do
-                game.print(itemName .. " " .. itemCount)
+--                 game.print(itemName .. " " .. itemCount)
             end
         end
     end
