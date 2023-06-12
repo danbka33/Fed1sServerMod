@@ -199,7 +199,6 @@ end
 
 
 function Statistics.build_top_data(player_data)
-	Statistics["calculate_"..player_data.current_top]()
 	local top = Statistics.get_top(player_data.current_top)
 
 	if not player_data.current_top then
@@ -237,6 +236,7 @@ function Statistics.build_top_data(player_data)
 		} -- , style = "subheader_caption_label"
 	end
 end
+
 
 
 -- Statistics calculation functions --
@@ -696,6 +696,7 @@ function Statistics.calculate_fishermans()
 end
 
 
+
 -- Statistics utility functions --
 
 function Statistics.get_raw_data_type(type_name)
@@ -717,12 +718,10 @@ function Statistics.get_top(top_name)
 end
 
 
-
 function Statistics.sort_and_set_top(top, top_name)
 	table.sort(top, function(first, second) return first.amount > second.amount end)
 	global.statistics.tops[top_name] = top
 end
-
 
 
 function Statistics.is_tree(entity_name)
@@ -852,7 +851,6 @@ function Statistics.on_player_joined_game(event)
 		global.statistics.gui[event.player_index].window = nil
 	end
 end
-
 
 
 function Statistics.on_player_died(event)
@@ -990,13 +988,14 @@ end
 
 function Statistics.on_top(event)
 	local self_player
+
 	if event.player_index then
 		self_player = game.players[event.player_index]
 	else
 		self_player = rcon
 	end
 
-	if not event.parameter or event.parameter == "" or event.parameter == "list" then
+	if not event.parameter or event.parameter == "" then
 		self_player.print({"statistics.heading-1", {"statistics.all-categories"}})
 
 		for index, top_name in pairs(Statistics.top_names) do
@@ -1015,9 +1014,6 @@ function Statistics.on_top(event)
 		end
 
 		local top_name = Statistics.top_names[top_id]
-
-		Statistics["calculate_"..top_name]()
-
 		local top = Statistics.get_top(top_name)
 
 		if not top or #top == 0 then
@@ -1033,10 +1029,11 @@ function Statistics.on_top(event)
 
 		if self_player.object_name and self_player.object_name == "LuaRCON" then
 			self_player.print("statistics."..top_name)
-		else 
+		else
 			self_player.print({"statistics.heading-1", {"statistics."..top_name}}, {0.8, 0.8, 0})
 			self_player.print({"statistics.heading-3", {"statistics."..top_name.."-info"}}, {0.8, 0.8, 0.8})
-		end 
+		end
+
 		for index = 1, max_index do
 			local player = game.players[top[index].player_index]
 			self_player.print(index..". "..player.name.." - "..top[index].amount)
@@ -1188,8 +1185,8 @@ end
 local events = {}
 events.on_init = Statistics.on_init
 events.on_configuration_changed = Statistics.on_configuration_changed
--- events.on_nth_tick = {}
--- events.on_nth_tick[180] = Statistics.on_nth_tick
+events.on_nth_tick = {}
+events.on_nth_tick[180] = Statistics.on_nth_tick
 events.events = {
 	[defines.events.on_player_created] = Statistics.on_player_created,
 	[defines.events.on_player_joined_game] = Statistics.on_player_joined_game,
