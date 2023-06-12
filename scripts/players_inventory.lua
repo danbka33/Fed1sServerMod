@@ -1527,7 +1527,7 @@ function PlayersInventory.on_clear_search(event)
     event.element.parent.parent.players.visible = false
     event.element.parent.parent.placeholder.visible = true
 
-    PlayersInventory.player_data[event.player_index].selected = nil
+    PlayersInventory.players_data[event.player_index].selected = nil
 end
 
 function PlayersInventory.on_toggle_expand_panel(event)
