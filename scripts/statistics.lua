@@ -989,7 +989,12 @@ end
 
 
 function Statistics.on_top(event)
-	local self_player = game.players[event.player_index]
+	local self_player
+	if event.player_index then
+		self_player = game.players[event.player_index]
+	else
+		self_player = rcon
+	end
 
 	if not event.parameter or event.parameter == "" or event.parameter == "list" then
 		self_player.print({"statistics.heading-1", {"statistics.all-categories"}})
@@ -1026,9 +1031,12 @@ function Statistics.on_top(event)
 			max_index = 10
 		end
 
-		self_player.print({"statistics.heading-1", {"statistics."..top_name}}, {0.8, 0.8, 0})
-		self_player.print({"statistics.heading-3", {"statistics."..top_name.."-info"}}, {0.8, 0.8, 0.8})
-
+		if self_player.object_name and self_player.object_name == "LuaRCON" then
+			self_player.print("statistics."..top_name)
+		else 
+			self_player.print({"statistics.heading-1", {"statistics."..top_name}}, {0.8, 0.8, 0})
+			self_player.print({"statistics.heading-3", {"statistics."..top_name.."-info"}}, {0.8, 0.8, 0.8})
+		end 
 		for index = 1, max_index do
 			local player = game.players[top[index].player_index]
 			self_player.print(index..". "..player.name.." - "..top[index].amount)
