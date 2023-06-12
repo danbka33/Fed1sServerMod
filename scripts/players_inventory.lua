@@ -1293,9 +1293,7 @@ function PlayersInventory.warn(target_player, reason)
     global.players_inventory_warnings[target_player.index] = warnings_count
 
     if target_player.connected then
-        local counts = {"первое", "второе", "третье"}
-        target_player.print("Вам вынесено "..counts[warnings_count].." предупреждение:")
-        target_player.print(reason)
+        game.print({"players-inventory.message-warning", target_player.name, warnings_count, reason}})
     end
 
     return warnings_count
