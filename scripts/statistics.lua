@@ -45,6 +45,14 @@ end
 
 
 
+-- Staistics GUI --
+
+function Statistics.create_toggle_button(target_player, player_data)
+	--
+end
+
+
+
 -- Statistics calculation functions --
 
 function Statistics.calculate_builders()
@@ -52,18 +60,22 @@ function Statistics.calculate_builders()
 	local top = {}
 
 	for player_index, items in pairs(builded) do
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for item_name, count in pairs(items) do
 			if item_name ~= "ghosts" then
-				record.count = record.count + count
+				amount = amount + count
 			end
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.builders)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.builders)
+	end
 end
 
 function Statistics.calculate_architectors()
@@ -75,18 +87,22 @@ function Statistics.calculate_architectors()
 			goto continue
 		end
 
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for _, count in pairs(items.ghosts) do
-			record.count = record.count + count
+			amount = amount + count
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 
 		::continue::
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.architectors)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.architectors)
+	end
 end
 
 function Statistics.calculate_military_enginears()
@@ -94,25 +110,30 @@ function Statistics.calculate_military_enginears()
 	local top = {}
 
 	local function calculate(items)
-		local total_count = 0
+		local amount = 0
 
 		for item_name, count in pairs(items) do
 			if Statistics.is_defensive_stuff(item_name) then
-				total_count = total_count + count
+				amount = amount + count
 			elseif item_name == "ghosts" then
-				total_count = total_count + calculate(count)
+				amount = amount + calculate(count)
 			end
 		end
 
-		return total_count
+		return amount
 	end
 
 	for player_index, items in pairs(builded) do
-		local record = {player_index=player_index, count=calculate(items)}
-		table.insert(top, record)
+		local amount = calculate(items)
+
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.military_enginears)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.military_enginears)
+	end
 end
 
 function Statistics.calculate_crafters()
@@ -120,16 +141,20 @@ function Statistics.calculate_crafters()
 	local top = {}
 
 	for player_index, items in pairs(crafted) do
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for _, count in pairs(items) do
-			record.count = record.count + count
+			amount = amount + count
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.crafters)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.crafters)
+	end
 end
 
 function Statistics.calculate_repairemans()
@@ -137,16 +162,20 @@ function Statistics.calculate_repairemans()
 	local top = {}
 
 	for player_index, items in pairs(repaired) do
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for _, count in pairs(items) do
-			record.count = record.count + count
+			amount = amount + count
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.repairemans)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.repairemans)
+	end
 end
 
 function Statistics.calculate_wariors()
@@ -158,20 +187,24 @@ function Statistics.calculate_wariors()
 			goto continue
 		end
 
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for _, damages in pairs(items.enemy) do
 			for name, count in pairs(damages) do
-				record.count = record.count + count
+				amount = amount + count
 			end
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 
 		::continue::
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.wariors)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.wariors)
+	end
 end
 
 function Statistics.calculate_tree_haters()
@@ -183,7 +216,7 @@ function Statistics.calculate_tree_haters()
 			goto next_player
 		end
 
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for item_name, damages in pairs(items.neutral) do
 			if not Statistics.is_tree(item_name) then
@@ -191,18 +224,22 @@ function Statistics.calculate_tree_haters()
 			end
 
 			for name, count in pairs(damages) do
-				record.count = record.count + count
+				amount = amount + count
 			end
 
 			::next_item::
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 
 		::next_player::
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.tree_haters)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.tree_haters)
+	end
 end
 
 function Statistics.calculate_rock_haters()
@@ -214,7 +251,7 @@ function Statistics.calculate_rock_haters()
 			goto next_player
 		end
 
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for item_name, damages in pairs(items.neutral) do
 			if not Statistics.is_rock(item_name) then
@@ -222,18 +259,22 @@ function Statistics.calculate_rock_haters()
 			end
 
 			for name, count in pairs(damages) do
-				record.count = record.count + count
+				amount = amount + count
 			end
 
 			::next_item::
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 
 		::next_player::
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.rock_haters)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.rock_haters)
+	end
 end
 
 function Statistics.calculate_miners()
@@ -241,18 +282,22 @@ function Statistics.calculate_miners()
 	local top = {}
 
 	for player_index, items in pairs(mined) do
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for item_name, count in pairs(items) do
 			if Statistics.is_minable(item_name) then
-				record.count = record.count + count
+				amount = amount + count
 			end
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.miners)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.miners)
+	end
 end
 
 function Statistics.calculate_deaths()
@@ -260,23 +305,26 @@ function Statistics.calculate_deaths()
 	local top = {}
 
 	for player_index, forces in pairs(deaths) do
-		local record = {player_index=player_index, count=0}
-
+		local amount = 0
 
 		for force_name, reasons in pairs(forces) do
 			if force_name ~= "unknown" then
 				for _, count in pairs(reasons) do
-					record.count = record.count + count
+					amount = amount + count
 				end
 			else
-				record.count = record.count + reasons
+				amount = amount + reasons
 			end
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.deaths)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.deaths)
+	end
 end
 
 function Statistics.calculate_railwaymans()
@@ -284,24 +332,30 @@ function Statistics.calculate_railwaymans()
 	local top = {}
 
 	local function calculate(items)
-		local total_count = 0
+		local amount = 0
 
 		for item_name, count in pairs(items) do
 			if Statistics.is_railway_stuff(item_name) then
-				total_count = total_count + count
+				amount = amount + count
 			elseif item_name == "ghosts" then
-				total_count = total_count + calculate(count)
+				amount = amount + calculate(count)
 			end
 		end
 
-		return total_count
+		return amount
 	end
 
 	for player_index, items in pairs(builded) do
-		table.insert(top, {player_index=player_index, count=calculate(items)})
+		local amount = calculate(items)
+
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.railwaymans)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.railwaymans)
+	end
 end
 
 function Statistics.calculate_runners()
@@ -309,16 +363,20 @@ function Statistics.calculate_runners()
 	local top = {}
 
 	for player_index, transports in pairs(walked) do
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for _, count in pairs(transports) do
-			record.count = record.count + count
+			amount = amount + count
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.runners)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.runners)
+	end
 end
 
 function Statistics.calculate_lumberjacks()
@@ -326,18 +384,22 @@ function Statistics.calculate_lumberjacks()
 	local top = {}
 
 	for player_index, items in pairs(mined) do
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for item_name, count in pairs(items) do
 			if item_name == "wood" then
-				record.count = record.count + count
+				amount = amount + count
 			end
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.lumberjacks)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.lumberjacks)
+	end
 end
 
 function Statistics.calculate_mariobrothers()
@@ -345,18 +407,22 @@ function Statistics.calculate_mariobrothers()
 	local top = {}
 
 	for player_index, items in pairs(builded) do
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for item_name, count in pairs(items) do
 			if Statistics.is_pipe(item_name) then
-				record.count = record.count + count
+				amount = amount + count
 			end
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.mariobrothers)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.mariobrothers)
+	end
 end
 
 function Statistics.calculate_oilmans()
@@ -364,18 +430,22 @@ function Statistics.calculate_oilmans()
 	local top = {}
 
 	for player_index, items in pairs(builded) do
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for item_name, count in pairs(items) do
 			if Statistics.is_oil_stuff(item_name) then
-				record.count = record.count + count
+				amount = amount + count
 			end
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.oilmans)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.oilmans)
+	end
 end
 
 function Statistics.calculate_roadworkers()
@@ -383,18 +453,22 @@ function Statistics.calculate_roadworkers()
 	local top = {}
 
 	for player_index, items in pairs(builded) do
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for item_name, count in pairs(items) do
 			if Statistics.is_walkpath(item_name) then
-				record.count = record.count + count
+				amount = amount + count
 			end
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.roadworkers)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.roadworkers)
+	end
 end
 
 function Statistics.calculate_electricians()
@@ -402,18 +476,22 @@ function Statistics.calculate_electricians()
 	local top = {}
 
 	for player_index, items in pairs(builded) do
-		local record = {player_index=player_index, count=0}
+		local amount = 0
 
 		for item_name, count in pairs(items) do
 			if Statistics.is_electric_pole(item_name) then
-				record.count = record.count + count
+				amount = amount + count
 			end
 		end
 
-		table.insert(top, record)
+		if amount > 0 then
+			table.insert(top, {player_index=player_index, amount=amount})
+		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.electricians)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.electricians)
+	end
 end
 
 function Statistics.calculate_fishermans()
@@ -422,12 +500,13 @@ function Statistics.calculate_fishermans()
 
 	for player_index, items in pairs(mined) do
 		if items["raw-fish"] then
-			local record = {player_index=player_index, count=items["raw-fish"]}
-			table.insert(top, record)
+			table.insert(top, {player_index=player_index, amount=items["raw-fish"]})
 		end
 	end
 
-	Statistics.sort_and_set_top(top, Statistics.tops.fishermans)
+	if #top > 0 then
+		Statistics.sort_and_set_top(top, Statistics.tops.fishermans)
+	end
 end
 
 
@@ -454,7 +533,7 @@ end
 
 
 function Statistics.sort_and_set_top(top, top_name)
-	table.sort(top, function(first, second) return first.count > second.count end)
+	table.sort(top, function(first, second) return first.amount > second.amount end)
 	global.statistics.tops[top_name] = top
 end
 
@@ -508,22 +587,37 @@ end
 
 function Statistics.on_init()
 	global.statistics = global.statistics or {}
-
 	global.statistics.raw_data = global.statistics.raw_data or {}
-	for _, type_name in pairs(Statistics.type_names) do
-		global.statistics.raw_data[type_name] = global.statistics.raw_data[type_name] or {}
-	end
-
 	global.statistics.tops = global.statistics.tops or {}
-	for _, top_name in pairs(Statistics.top_names) do
-		global.statistics.tops[top_name] = global.statistics.tops[top_name] or {}
-	end
-
+	global.statistics.players_data = global.statistics.players_data or {}
 	global.statistics.gui = global.statistics.gui or {}
 end
 
 function Statistics.on_configuration_changed(data)
 	Statistics.on_init()
+
+	-- migrations
+
+	if not data then
+		return
+	end
+
+	if data.mod_changes
+	and data.mod_changes["Fed1sServerMod"]
+	and data.mod_changes["Fed1sServerMod"].old_version == "1.1.2"
+	then
+		for _, top_name in pairs(Statistics.top_names) do
+			global.statistics.tops[top_name] = {}
+		end
+
+		for player_index, player in pairs(game.players) do
+			global.statistics.players_data[player_index] = {
+				current_category = Statistics.top_names[1],
+				pinned_categories = {},
+				pin_side = "left"
+			}
+		end
+	end
 end
 
 function Statistics.on_nth_tick(event)
@@ -539,6 +633,18 @@ function Statistics.on_nth_tick(event)
 	else
 		Statistics.counter = 1
 	end
+end
+
+function Statistics.on_player_created(event)
+	if not global.statistics.players_data then
+		global.statistics.players_data = {}
+	end
+
+	global.statistics.players_data[event.player_index] = {
+		current_category = global.statistics.top_names[1],
+		pinned_categories = {},
+		pin_side = "left"
+	}
 end
 
 function Statistics.on_player_joined_game(event)
@@ -702,7 +808,7 @@ function Statistics.on_top(event)
 	else
 		local top_id = tonumber(event.parameter)
 
-		if not top_id or top_id % 1 > 0 or top_id < 0 or top_id > #Statistics.top_names then
+		if not top_id or top_id % 1 > 0 or top_id < 1 or top_id > #Statistics.top_names then
 			self_player.print({"statistics.wrong-parameter"})
 			return
 		end
@@ -729,7 +835,7 @@ function Statistics.on_top(event)
 
 		for index = 1, max_index do
 			local player = game.players[top[index].player_index]
-			self_player.print(index..". "..player.name.." - "..top[index].count)
+			self_player.print(index..". "..player.name.." - "..top[index].amount)
 		end
 	end
 end
@@ -794,6 +900,7 @@ events.on_configuration_changed = Statistics.on_configuration_changed
 -- events.on_nth_tick = {}
 -- events.on_nth_tick[180] = Statistics.on_nth_tick
 events.events = {
+	[defines.events.on_player_created] = Statistics.on_player_created,
 	[defines.events.on_player_joined_game] = Statistics.on_player_joined_game,
 	[defines.events.on_player_changed_position] = Statistics.on_player_changed_position,
 	[defines.events.on_player_died] = Statistics.on_player_died,
