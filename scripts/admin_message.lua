@@ -51,8 +51,10 @@ function AdminMessage.on_nth_tick_60(event)
 end
 
 function AdminMessage.on_console_chat(event)
-    local player = game.players[event.player_index]
-    local playerData = ServerMod.get_make_playerdata(event.player_index)
+    if event.player_index then
+        local player = game.players[event.player_index]
+        local playerData = ServerMod.get_make_playerdata(event.player_index)
+    end
 
     if player and playerData and playerData.role then
 
