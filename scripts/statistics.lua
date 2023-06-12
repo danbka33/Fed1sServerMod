@@ -1,4 +1,11 @@
--- @ Ajick 2023
+-- Copyright © Ajick 2023
+
+
+local mod_gui = require("__core__/lualib/mod-gui")
+
+
+
+-- Constans and variables --
 
 local Statistics = {}
 
@@ -48,9 +55,188 @@ end
 -- Staistics GUI --
 
 function Statistics.create_toggle_button(target_player, player_data)
-	--
+	local button_flow = mod_gui.get_button_flow(target_player)
+	local toggle_button = button_flow.statistics_toggle_window
+	
+	if toggle_button then
+		toggle_button.destroy()
+	end
+
+	player_data.toggle_button = button_flow.add{
+		type = "sprite-button",
+		name = "statistics_toggle_window",
+		sprite = "statistics_white",
+		hovered_sprite = "statistics_black",
+		clicked_sprite = "statistics_black",
+		tooltip = {"statistics.caption"}
+	}
 end
 
+
+function Statistics.build_statistics_window(player)
+	local window = player.gui.screen.add{type="frame", name="statistics_window", direction="vertical"}
+	window.style.width = 900
+	window.style.height = 700
+
+
+	-- Header --
+
+	local titlebar = window.add{type="flow", direction="horizontal"}
+	titlebar.drag_target = window
+
+	titlebar.add{type="label", caption={"statistics.caption"}, ignored_by_interaction=true, style="frame_title"}
+
+	local spacer = titlebar.add{type="empty-widget", ignored_by_interaction=true, style="draggable_space"}
+	spacer.style.horizontally_stretchable = true
+	spacer.style.height = 24
+	spacer.style.left_margin = 5
+	spacer.style.right_margin = 5
+	
+	titlebar.add{
+		type = "sprite-button",
+		name = "statistics_close_window_button",
+		sprite = "utility/close_white",
+		hovered_sprite = "utility/close_black",
+		clicked_sprite = "utility/close_black",
+		style = "frame_action_button"
+	}
+
+
+	-- Content --
+
+	local content = window.add{type="flow", name="content", direction="horizontal"}
+	content.style.margin = 10
+	content.style.horizontally_stretchable = true
+
+
+	-- Tops list --
+
+	local tops = content.add{type="scroll-pane", name="tops", direction="vertical"}
+	-- tops.style.horizontally_stretchable = true
+	tops.style.width = 300
+	
+	for _, top_name in pairs(Statistics.top_names) do
+		local label = tops.add{
+			type = "label",
+			name = "statistics_top_"..top_name,
+			caption = {"statistics."..top_name},
+			tags = {top_name=top_name}
+		}
+			-- style = "subheader_caption_label",
+		-- label.style.margin = 10
+	end
+
+
+	-- Top table --
+
+	local top = content.add{type="flow", name="top", direction="vertical"}
+	top.style.margin = 10
+	-- top.style.horizontally_stretchable = true
+
+	local top_header = top.add{type="label", name="place"}
+		-- style = "subheader_caption_label"
+	-- top_header.style.margin = 10
+
+	local top_subheader = top.add{type="label", name="player"}
+		-- style = "subheader_caption_label"
+	-- top_subheader.style.margin = 10
+
+
+	-- Top table header --
+
+	local header = top.add{type="table", name="header", column_count=3, ignored_by_interaction=true}
+	-- header.style.margin = 10
+	header.style.horizontally_stretchable = true
+
+	local label_place = header.add{
+		type = "label",
+		name = "place",
+		caption = {"statistics.caption-place"}
+	}
+		-- style = "subheader_caption_label"
+	-- label_place.style.margin = 10
+
+	local label_player = header.add{
+		type = "label",
+		name = "player",
+		caption = {"statistics.caption-player"},
+		style = "subheader_caption_label"
+	}
+	-- label_player.style.margin = 10
+
+	local label_amount = header.add{
+		type = "label",
+		name = "amount",
+		caption = {"statistics.caption-amount"},
+		style = "subheader_caption_label"
+	}
+	-- label_amount.style.margin = 10
+
+
+	-- Top table --
+
+	local scrolled_data = top.add{type="scroll-pane", name="scrolled_data", direction="vertical"}
+	-- scrolled_data.style.horizontally_stretchable = true
+	-- scrolled_data.style.width = 300
+
+	local data = scrolled_data.add{type="table", name="data", column_count=3, ignored_by_interaction=true}
+	-- data.style.margin = 10
+	data.style.horizontally_stretchable = true
+
+
+	--
+
+	global.statistics.players_data[player.index].window = window
+	global.statistics.players_data[player.index].top_header = top_header
+	global.statistics.players_data[player.index].top_subheader = top_subheader
+	global.statistics.players_data[player.index].top_data = data
+
+
+	--
+
+	return window
+end
+
+
+function Statistics.build_top_data(player_data)
+	Statistics["calculate_"..player_data.current_top]()
+	local top = Statistics.get_top(player_data.current_top)
+
+	if not player_data.current_top then
+		player_data.current_top = Statistics.top_names[1]
+		player_data.pinned_tops = {}
+		player_data.pin_side = "left"
+	end
+
+	player_data.top_header.caption = {"statistics."..player_data.current_top}
+	player_data.top_subheader.caption = {"statistics."..player_data.current_top.."-info"}
+
+	player_data.top_data.clear()
+
+	if #top < 1 then
+		player_data.top_data.add{
+			type = "label",
+			caption = {"statistics.no-data"}
+		} -- , style = "subheader_caption_label"
+	end
+
+	for place, data in pairs(top) do
+		player_data.top_data.add{
+			type = "label",
+			caption = place
+		} -- , style = "subheader_caption_label"
+
+		player_data.top_data.add{
+			type = "label",
+			caption = game.players[data.player_index].name
+		} -- , style = "subheader_caption_label"
+
+		player_data.top_data.add{
+			type = "label",
+			caption = data.amount
+		} -- , style = "subheader_caption_label"
+	end
+end
 
 
 -- Statistics calculation functions --
@@ -596,6 +782,10 @@ end
 function Statistics.on_configuration_changed(data)
 	Statistics.on_init()
 
+	for player_index, player in pairs(game.players) do
+		Statistics.create_toggle_button(player, global.statistics.players_data[player_index])
+	end
+
 	-- migrations
 
 	if not data then
@@ -612,8 +802,8 @@ function Statistics.on_configuration_changed(data)
 
 		for player_index, player in pairs(game.players) do
 			global.statistics.players_data[player_index] = {
-				current_category = Statistics.top_names[1],
-				pinned_categories = {},
+				current_top = Statistics.top_names[1],
+				pinned_tops = {},
 				pin_side = "left"
 			}
 		end
@@ -641,10 +831,15 @@ function Statistics.on_player_created(event)
 	end
 
 	global.statistics.players_data[event.player_index] = {
-		current_category = global.statistics.top_names[1],
-		pinned_categories = {},
+		current_top = global.statistics.top_names[1],
+		pinned_tops = {},
 		pin_side = "left"
 	}
+
+	Statistics.create_toggle_button(
+		game.players[event.player_index],
+		global.statistics.players_data[event.player_index]
+	)
 end
 
 function Statistics.on_player_joined_game(event)
@@ -698,13 +893,13 @@ function Statistics.on_built_entity(event)
 
 	local builded = Statistics.get_player_raw_data_type(event.player_index, Statistics.types.builded)
 
-    if event.created_entity.name == "entity-ghost" then
-        builded.ghosts = builded.ghosts or {}
-        local count = builded.ghosts[event.created_entity.ghost_name] or 0
-        builded.ghosts[event.created_entity.ghost_name] = count + 1
-    else
-        builded[event.created_entity.name] = (builded[event.created_entity.name] or 0) + 1
-    end
+	if event.created_entity.name == "entity-ghost" then
+		builded.ghosts = builded.ghosts or {}
+		local count = builded.ghosts[event.created_entity.ghost_name] or 0
+		builded.ghosts[event.created_entity.ghost_name] = count + 1
+	else
+		builded[event.created_entity.name] = (builded[event.created_entity.name] or 0) + 1
+	end
 end
 
 function Statistics.on_player_built_tile(event)
@@ -792,6 +987,7 @@ function Statistics.on_player_changed_position(event)
 	walked[vehicle] = count
 end
 
+
 function Statistics.on_top(event)
 	local self_player = game.players[event.player_index]
 
@@ -839,6 +1035,93 @@ function Statistics.on_top(event)
 		end
 	end
 end
+
+
+function Statistics.on_toggle_statistics_window(event)
+	local player_data = global.statistics.players_data[event.player_index]
+
+	if player_data.window then
+		player_data.window.destroy()
+		player_data.window = nil
+		player_data.top_header = nil
+		player_data.top_subheader = nil
+		player_data.top_data = nil
+		return
+	end
+
+	local window = Statistics.build_statistics_window(game.players[event.player_index], player_data)
+
+	Statistics.build_top_data(player_data)
+
+	window.force_auto_center()
+end
+
+function Statistics.on_close_statistics_window(event)
+	local player_data = global.statistics.players_data[event.player_index]
+
+	player_data.window.destroy()
+	player_data.window = nil
+	player_data.top_header = nil
+	player_data.top_subheader = nil
+	player_data.top_data = nil
+end
+
+
+function Statistics.on_top_click(event)
+	if not event.element or not event.element.valid then
+		return
+	end
+
+	if not event.element.tags or not event.element.tags.top_name then
+		return
+	end
+
+	local player_data = global.statistics.players_data[event.player_index]
+
+	player_data.current_top = event.element.tags.top_name
+
+	Statistics.build_top_data(player_data)
+end
+
+function Statistics.on_gui_click(event)
+    if not event.element.valid then
+        return
+    end
+
+    local element_name = event.element.name
+
+    if Statistics.gui_click_events[element_name] then
+        Statistics.gui_click_events[element_name](event)
+    elseif string.match(element_name, "statistics_top_") then
+        Statistics.on_top_click(event)
+    end
+end
+
+Statistics.gui_click_events = {
+	["statistics_toggle_window"] = Statistics.on_toggle_statistics_window,
+	["statistics_close_window_button"] = Statistics.on_close_statistics_window
+}
+
+	-- ["statistics_clear_search"] = Statistics.on_clear_search,
+
+	-- ["statistics_expand_button"] = Statistics.on_toggle_expand_panel,
+
+	-- ["statistics_follow_button"] = Statistics.on_follow_player,
+	-- ["statistics_favorite_button"] = Statistics.on_favorite_click,
+
+	-- ["statistics_promotion_button"] = Statistics.on_promotion_click,
+
+	-- ["statistics_warn_button"] = Statistics.on_punish_player,
+	-- ["statistics_mute_button"] = Statistics.on_mute_click,
+	-- ["statistics_kick_button"] = Statistics.on_punish_player,
+	-- ["statistics_ban_button"] = Statistics.on_ban_click,
+
+	-- ["statistics_accept_punishment_button"] = Statistics.on_punishment_accept,
+	-- ["statistics_cancel_punishment_button"] = Statistics.on_punishment_closecancel,
+	-- ["statistics_close_accept_prompt_window_button"] = Statistics.on_punishment_closecancel,
+
+	-- ["statistics_give_button"] = Statistics.on_give_button_click,
+	-- ["statistics_take_selected_button"] = Statistics.on_take_selected_click
 
 
 
@@ -909,7 +1192,8 @@ events.events = {
 	[defines.events.on_player_repaired_entity] = Statistics.on_player_repaired_entity,
 	[defines.events.on_entity_died] = Statistics.on_entity_died,
 	[defines.events.on_player_mined_item] = Statistics.on_player_mined_item,
-	[defines.events.on_player_crafted_item] = Statistics.on_player_crafted_item
+	[defines.events.on_player_crafted_item] = Statistics.on_player_crafted_item,
+	[defines.events.on_gui_click] = Statistics.on_gui_click
 }
 
 EventHandler.add_lib(events)
