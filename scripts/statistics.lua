@@ -75,8 +75,6 @@ end
 
 function Statistics.build_statistics_window(player)
 	local window = player.gui.screen.add{type="frame", name="statistics_window", direction="vertical"}
-	window.style.width = 900
-	window.style.height = 700
 
 
 	-- Header --
@@ -105,56 +103,64 @@ function Statistics.build_statistics_window(player)
 	-- Content --
 
 	local content = window.add{type="flow", name="content", direction="horizontal"}
-	content.style.margin = 10
 	content.style.horizontally_stretchable = true
 
 
 	-- Tops list --
 
-	local tops = content.add{type="scroll-pane", name="tops", direction="vertical"}
-	-- tops.style.horizontally_stretchable = true
-	tops.style.width = 300
+	local tops_menu = content.add{type="scroll-pane", name="tops_menu", direction="vertical"}
+	tops_menu.style.margin = 10
+	tops_menu.style.width = 200
 	
 	for _, top_name in pairs(Statistics.top_names) do
-		local label = tops.add{
+		local label = tops_menu.add{
 			type = "label",
 			name = "statistics_top_"..top_name,
 			caption = {"statistics."..top_name},
 			tags = {top_name=top_name}
 		}
-			-- style = "subheader_caption_label",
-		-- label.style.margin = 10
+		label.style.margin = 3
+		label.style.hovered_font_color = {1, 1, 0}
+
+		if top_name == global.statistics.players_data[player.index].current_top then
+			label.style.font = "default-bold"
+			label.style.font_color = {1, 1, 0}
+		else
+			label.style.font = "default"
+			label.style.font_color = {1, 1, 1}
+		end
 	end
 
 
 	-- Top table --
 
-	local top = content.add{type="flow", name="top", direction="vertical"}
-	top.style.margin = 10
-	-- top.style.horizontally_stretchable = true
+	local top = content.add{type="frame", name="top", direction="vertical"}
+	top.style.width = 550
+	top.style.height = 700
+	top.style.padding = 20
 
 	local top_header = top.add{type="label", name="place"}
-		-- style = "subheader_caption_label"
-	-- top_header.style.margin = 10
+	top_header.style.font = "heading-1"
+	top_header.style.font_color = {1, 1, 0}
 
 	local top_subheader = top.add{type="label", name="player"}
-		-- style = "subheader_caption_label"
-	-- top_subheader.style.margin = 10
+	top_subheader.style.font = "heading-3"
+	top_subheader.style.font_color = {0.7, 0.7, 0.7}
 
 
 	-- Top table header --
 
 	local header = top.add{type="table", name="header", column_count=3, ignored_by_interaction=true}
-	-- header.style.margin = 10
-	header.style.horizontally_stretchable = true
+	header.style.top_margin = 20
 
 	local label_place = header.add{
 		type = "label",
 		name = "place",
-		caption = {"statistics.caption-place"}
+		caption = {"statistics.caption-place"},
+		style = "subheader_caption_label"
 	}
-		-- style = "subheader_caption_label"
-	-- label_place.style.margin = 10
+	label_place.style.width = 30
+	label_place.style.horizontal_align = "right"
 
 	local label_player = header.add{
 		type = "label",
@@ -162,7 +168,8 @@ function Statistics.build_statistics_window(player)
 		caption = {"statistics.caption-player"},
 		style = "subheader_caption_label"
 	}
-	-- label_player.style.margin = 10
+	label_player.style.width = 330
+	label_player.style.margin = 3
 
 	local label_amount = header.add{
 		type = "label",
@@ -170,25 +177,31 @@ function Statistics.build_statistics_window(player)
 		caption = {"statistics.caption-amount"},
 		style = "subheader_caption_label"
 	}
-	-- label_amount.style.margin = 10
+	label_amount.style.width = 100
+	label_amount.style.horizontal_align = "right"
 
 
 	-- Top table --
 
-	local scrolled_data = top.add{type="scroll-pane", name="scrolled_data", direction="vertical"}
-	-- scrolled_data.style.horizontally_stretchable = true
-	-- scrolled_data.style.width = 300
+	local data_scroller = top.add{type="scroll-pane", name="data_scroller", direction="vertical"}
+	data_scroller.style.horizontally_stretchable = true
 
-	local data = scrolled_data.add{type="table", name="data", column_count=3, ignored_by_interaction=true}
-	-- data.style.margin = 10
-	data.style.horizontally_stretchable = true
+	local data = data_scroller.add{
+		type = "table",
+		name = "data",
+		column_count = 3,
+		ignored_by_interaction = true,
+		draw_horizontal_lines = true
+	}
 
 
 	--
 
 	global.statistics.players_data[player.index].window = window
+	global.statistics.players_data[player.index].tops_menu = tops_menu
 	global.statistics.players_data[player.index].top_header = top_header
 	global.statistics.players_data[player.index].top_subheader = top_subheader
+	global.statistics.players_data[player.index].data_scroller = data_scroller
 	global.statistics.players_data[player.index].top_data = data
 
 
@@ -199,6 +212,7 @@ end
 
 
 function Statistics.build_top_data(player_data)
+	-- Statistics["calculate_"..player_data.current_top]()
 	local top = Statistics.get_top(player_data.current_top)
 
 	if not player_data.current_top then
@@ -216,25 +230,57 @@ function Statistics.build_top_data(player_data)
 		player_data.top_data.add{
 			type = "label",
 			caption = {"statistics.no-data"}
-		} -- , style = "subheader_caption_label"
+		}
+	end
+
+	for _, element in pairs(player_data.tops_menu.children) do
+		if element.tags.top_name == player_data.current_top then
+			element.style.font = "default-bold"
+			element.style.font_color = {1, 1, 0}
+		else
+			element.style.font = "default"
+			element.style.font_color = {1, 1, 1}
+		end
 	end
 
 	for place, data in pairs(top) do
-		player_data.top_data.add{
+		local label_place = player_data.top_data.add{
 			type = "label",
 			caption = place
-		} -- , style = "subheader_caption_label"
+		}
+		label_place.style.width = 30
+		label_place.style.margin = 3
+		label_place.style.horizontal_align = "right"
 
-		player_data.top_data.add{
+		local label_player = player_data.top_data.add{
 			type = "label",
 			caption = game.players[data.player_index].name
-		} -- , style = "subheader_caption_label"
+		}
+		label_player.style.width = 320
+		label_player.style.margin = 3
 
-		player_data.top_data.add{
+		local label_amount = player_data.top_data.add{
 			type = "label",
 			caption = data.amount
-		} -- , style = "subheader_caption_label"
+		}
+		label_amount.style.width = 100
+		label_amount.style.margin = 3
+		label_amount.style.horizontal_align = "right"
+
+		if place < 11 then
+			label_place.style.font = "default-bold"
+			label_player.style.font = "default-bold"
+			label_amount.style.font = "default-bold"
+		end
+
+		if place < 4 then
+			label_place.style.font_color = {1, 1, 0}
+			label_player.style.font_color = {1, 1, 0}
+			label_amount.style.font_color = {1, 1, 0}
+		end
 	end
+
+	player_data.data_scroller.scroll_to_top()
 end
 
 
@@ -781,10 +827,6 @@ end
 function Statistics.on_configuration_changed(data)
 	Statistics.on_init()
 
-	for player_index, player in pairs(game.players) do
-		Statistics.create_toggle_button(player, global.statistics.players_data[player_index])
-	end
-
 	-- migrations
 
 	if not data then
@@ -806,6 +848,10 @@ function Statistics.on_configuration_changed(data)
 				pin_side = "left"
 			}
 		end
+	end
+
+	for player_index, player in pairs(game.players) do
+		Statistics.create_toggle_button(player, global.statistics.players_data[player_index])
 	end
 end
 
@@ -1066,8 +1112,10 @@ function Statistics.on_close_statistics_window(event)
 
 	player_data.window.destroy()
 	player_data.window = nil
+	player_data.tops_menu = nil
 	player_data.top_header = nil
 	player_data.top_subheader = nil
+	player_data.data_scroller = nil
 	player_data.top_data = nil
 end
 
@@ -1082,7 +1130,6 @@ function Statistics.on_top_click(event)
 	end
 
 	local player_data = global.statistics.players_data[event.player_index]
-
 	player_data.current_top = event.element.tags.top_name
 
 	Statistics.build_top_data(player_data)
