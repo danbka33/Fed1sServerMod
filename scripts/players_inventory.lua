@@ -180,7 +180,7 @@ function PlayersInventory.settingup_and_fill_current_tab(player_index, in_search
     local current_tab = player_data.current_tab
 
     if current_tab.name == "favorites" and #player_filters.favorites == 0
-    or current_tab.name == "warnings" and  table_size(global.players_inventory_warnings) == 0
+    or current_tab.name == "warnings" and  #global.players_inventory_warnings == 0
     or current_tab.name == "muted" and #global.players_inventory_muted == 0
     or current_tab.name == "banned" and #global.players_inventory_banned == 0
     then
@@ -286,7 +286,7 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
     local self_player = game.players[players_list.player_index]
     local muted = PlayersInventory.is_muted(target_player.index)
     local banned = PlayersInventory.is_banned(target_player.index)
-    local warnings = global.players_inventory_warnings[target_player.index] or 0
+    local warnings = global.players_inventory_warnings[target_player.index] or {}
     local tab_name = PlayersInventory.players_data[self_player.index].current_tab.name
     local role_index = global.players_inventory_filters[self_player.index].role_index
 
@@ -334,8 +334,8 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
     end
 
     header.add{
-        type="label", name="warnings", caption={"players-inventory.label-warnings-badge", warnings},
-        visible=(warnings > 0)
+        type="label", name="warnings", caption={"players-inventory.label-warnings-badge", #warnings},
+        visible=(#warnings > 0), tooltip=PlayersInventory.get_warn_tooltip(warnings)
     }
 
     header.add{
@@ -806,11 +806,18 @@ function PlayersInventory.build_accept_prompt_window(self_player, tags)
     reason_textbox.style.width = 450
     reason_textbox.style.height = 100
 
-    local player_warnings = global.players_inventory_warnings[target_player.index] or 0
+    local warnings = global.players_inventory_warnings[target_player.index] or {}
+    local tooltip
+
+    if #warnings > 0 then
+        tooltip = PlayersInventory.get_warn_tooltip(warnings)
+    end
 
     if tags.action == "warn" then
         local warn_info = window.add{
-            type="label", caption={"players-inventory.label-warnings-info", player_warnings}
+            type = "label",
+            caption = {"players-inventory.label-warnings-info", #warnings},
+            tooltip = tooltip
         }
         warn_info.style.font_color = {0.6 ,0.6, 0.6, 1}
     end
@@ -843,11 +850,12 @@ function PlayersInventory.build_accept_prompt_window(self_player, tags)
 end
 
 function PlayersInventory.warn_player(self_index, target_player, reason)
-    local warnings_count = PlayersInventory.warn(target_player, reason)
+    local warnings = PlayersInventory.warn(target_player, reason)
     local current_tab = PlayersInventory.players_data[self_index].current_tab
     local panel = current_tab.players.list[target_player.name]
 
-    panel.header.warnings.caption = {"players-inventory.label-warnings-badge", warnings_count}
+    panel.header.warnings.caption = {"players-inventory.label-warnings-badge", #warnings}
+    panel.header.warnings.tooltip = PlayersInventory.get_warn_tooltip(warnings)
     panel.header.warnings.visible = true
 end
 
@@ -1287,18 +1295,16 @@ function PlayersInventory.unfavorite(self_index, player_index)
 end
 
 function PlayersInventory.warn(target_player, reason)
-    local warnings_count = global.players_inventory_warnings[target_player.index] or 0
-    warnings_count = warnings_count + 1
-
-    global.players_inventory_warnings[target_player.index] = warnings_count
-
-    if target_player.connected then
-        local counts = {"первое", "второе", "третье"}
-        target_player.print("Вам вынесено "..counts[warnings_count].." предупреждение:")
-        target_player.print(reason)
+    if not global.players_inventory_warnings[target_player.index] then
+        global.players_inventory_warnings[target_player.index] = {}
     end
 
-    return warnings_count
+    local warnings = global.players_inventory_warnings[target_player.index]
+    table.insert(warnings, reason)
+
+    game.print({"players-inventory.message-warning", target_player.name, #warnings, reason})
+
+    return warnings
 end
 
 function PlayersInventory.mute(target_player)
@@ -1347,6 +1353,16 @@ function PlayersInventory.decrise_selected(self_index, target_index)
     buttons.players_inventory_take_selected_button.enabled = (selected_count > 0)
 end
 
+function PlayersInventory.get_warn_tooltip(warnings)
+    local tooltip = {"", {"players-inventory.tooltip-warnings"}}
+
+    for index, warning in pairs(warnings) do
+        table.insert(tooltip, "\n" .. index .. ". " .. warning)
+    end
+
+    return tooltip
+end
+
 
 function PlayersInventory.remove(list, item)
     for index = 1, #list do
@@ -1371,21 +1387,19 @@ function PlayersInventory.on_init()
 end
 
 function PlayersInventory.on_configuration_changed(data)
-    PlayersInventory.on_init()
-    
-    for _, player in pairs(game.players) do
-        local player_filters = global.players_inventory_filters[player.index] or {}
-
-        player_filters.favorites = player_filters.favorites or {}
-        player_filters.tab_index = player_filters.tab_index or 1
-        player_filters.role_index = player_filters.role_index or 1
-
-        global.players_inventory_filters[player.index] = player_filters
-
-        PlayersInventory.create_toggle_button(player)
+    if not data then
+        return
     end
 
-    if gebug then
+    if data.mod_changes
+    and data.mod_changes["Fed1sServerMod"]
+    and data.mod_changes["Fed1sServerMod"].old_version < "1.1.4"
+    then
+        global.players_inventory_warnings[2] = {}
+        table.insert(global.players_inventory_warnings[2], "МАЛО ПИЛ ВОДКИ НА ВЫХОДНЫХ!")
+    end
+
+    if in_gebug then
         game.print("Configuration updated")
     end
 end
@@ -1527,7 +1541,7 @@ function PlayersInventory.on_clear_search(event)
     event.element.parent.parent.players.visible = false
     event.element.parent.parent.placeholder.visible = true
 
-    PlayersInventory.player_data[event.player_index].selected = nil
+    PlayersInventory.players_data[event.player_index].selected = nil
 end
 
 function PlayersInventory.on_toggle_expand_panel(event)
