@@ -812,6 +812,11 @@ function Statistics.is_walkpath(entity_name)
 		or entity_name == "refined-hazard-concrete-left" or entity_name == "refined-hazard-concrete-right"
 end
 
+function Statistics.is_wall(entity_name)
+	return entity_name == "stane-wall" or entity_name == "mending-wall-rampant-arsenal"
+		or entity_name == "reinforced-wall-rampant-arsenal"
+end
+
 
 
 -- Events handlers --
@@ -960,11 +965,11 @@ function Statistics.on_player_repaired_entity(event)
 		return
 	end
 
-	-- Counting not precisely, but tssss!
-
 	local repaired = Statistics.get_player_raw_data_type(event.player_index, Statistics.types.repaired)
 
-	if event.entity.name == "stone-wall" then
+	-- Counting not precisely, but tssss!
+
+	if Statistics.is_wall(event.entity.name) then
 		repaired[event.entity.name] = (repaired[event.entity.name] or 0) + 4
 	else
 		repaired[event.entity.name] = (repaired[event.entity.name] or 0) + 2
