@@ -881,7 +881,7 @@ function Statistics.on_player_created(event)
 	end
 
 	global.statistics.players_data[event.player_index] = {
-		current_top = global.statistics.top_names[1],
+		current_top = Statistics.top_names[1],
 		pinned_tops = {},
 		pin_side = "left"
 	}
