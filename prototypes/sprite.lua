@@ -181,3 +181,24 @@ data:extend{
         flags = {"icon"}
     }
 }
+
+-- Statistics sprites --
+
+data:extend{
+    {
+        type = "sprite",
+        name = "statistics_white",
+        filename = "__Fed1sServerMod__/graphics/icons/Statistics/statistics-white.png",
+        priority = "extra-high-no-scale",
+        size = 64,
+        flags = {"icon"}
+    },
+    {
+        type = "sprite",
+        name = "statistics_black",
+        filename = "__Fed1sServerMod__/graphics/icons/Statistics/statistics-black.png",
+        priority = "extra-high-no-scale",
+        size = 64,
+        flags = {"icon"}
+    }
+}
