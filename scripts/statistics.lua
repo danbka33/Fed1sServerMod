@@ -9,8 +9,6 @@ local mod_gui = require("__core__/lualib/mod-gui")
 
 local Statistics = {}
 
-Statistics.counter = 1
-
 Statistics.type_names = {
 	"builded",
 	"killed",
@@ -45,10 +43,6 @@ Statistics.top_names = {
 	"electricians",
 	"fishermans"
 }
-Statistics.tops = {}
-for _, top_name in pairs(Statistics.top_names) do
-	Statistics.tops[top_name] = top_name
-end
 
 
 
@@ -215,8 +209,6 @@ function Statistics.build_statistics_window(player)
 end
 
 function Statistics.build_top_data(player_data)
-	-- Statistics["calculate_"..player_data.current_top]()
-
 	local top = Statistics.get_top(player_data.current_top)
 
 	for _, element in pairs(player_data.tops_menu.children) do
@@ -232,7 +224,7 @@ function Statistics.build_top_data(player_data)
 
 	player_data.top_data.clear()
 
-	if #top == 0 then
+	if not top then
 		player_data.top_data.add{
 			type = "label",
 			caption = {"statistics.no-data"}
@@ -323,8 +315,12 @@ function Statistics.calculate_builders()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.builders)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_architectors()
@@ -356,8 +352,12 @@ function Statistics.calculate_architectors()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.architectors)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_military_enginears()
@@ -392,8 +392,12 @@ function Statistics.calculate_military_enginears()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.military_enginears)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_crafters()
@@ -418,14 +422,18 @@ function Statistics.calculate_crafters()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.crafters)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_repairemans()
 	local repaired = Statistics.get_raw_data_type(Statistics.types.repaired)
 
-	if not repared then
+	if not repaired then
     	return
     end
 
@@ -444,8 +452,12 @@ function Statistics.calculate_repairemans()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.repairemans)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_wariors()
@@ -478,8 +490,12 @@ function Statistics.calculate_wariors()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.wariors)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_tree_haters()
@@ -519,8 +535,12 @@ function Statistics.calculate_tree_haters()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.tree_haters)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_rock_haters()
@@ -559,8 +579,12 @@ function Statistics.calculate_rock_haters()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.rock_haters)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_miners()
@@ -587,8 +611,12 @@ function Statistics.calculate_miners()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.miners)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_deaths()
@@ -619,8 +647,12 @@ function Statistics.calculate_deaths()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.deaths)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_railwaymans()
@@ -655,8 +687,12 @@ function Statistics.calculate_railwaymans()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.railwaymans)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_runners()
@@ -681,8 +717,12 @@ function Statistics.calculate_runners()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.runners)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_lumberjacks()
@@ -709,8 +749,12 @@ function Statistics.calculate_lumberjacks()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.lumberjacks)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_mariobrothers()
@@ -737,8 +781,12 @@ function Statistics.calculate_mariobrothers()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.mariobrothers)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_oilmans()
@@ -765,8 +813,12 @@ function Statistics.calculate_oilmans()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.oilmans)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_roadworkers()
@@ -793,8 +845,12 @@ function Statistics.calculate_roadworkers()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.roadworkers)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_electricians()
@@ -821,8 +877,12 @@ function Statistics.calculate_electricians()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.electricians)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_fishermans()
@@ -841,8 +901,12 @@ function Statistics.calculate_fishermans()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.fishermans)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 
@@ -864,25 +928,29 @@ function Statistics.get_player_raw_data_type(player_index, type_name)
 end
 
 function Statistics.get_top(top_name)
-	-- if global.statistics.updating then
-	-- 	return {}
-	-- end
-
-	-- local top = global.statistics.tops[top_name] or {}
-	-- local new_top = {}
-
-	-- for _, item in pairs(top) do
-	-- 	table.insert(new_top, item)
-	-- end
-
-	-- return new_top
-	return global.statistics.tops[top_name]
+	return Statistics["calculate_"..top_name]()
 end
 
 
-function Statistics.sort_and_set_top(top, top_name)
+function Statistics.sort(top)
 	table.sort(top, function(first, second) return first.amount > second.amount end)
-	global.statistics.tops[top_name] = top
+end
+
+function Statistics.split_version(str)
+	local start_index = 1, end_index, major, minor, build
+	
+	end_index = string.find(str, ".", start_index, true)
+	major = tonumber(string.sub(str, start_index, end_index))
+
+	start_index = end_index + 1
+	end_index = string.find(str, ".", start_index, true)
+	minor = tonumber(string.sub(str, start_index, end_index))
+
+	start_index = end_index + 1
+	end_index = string.find(str, ".", start_index, true)
+	build = tonumber(string.sub(str, start_index, end_index))
+
+	return major, minor, build
 end
 
 
@@ -939,7 +1007,6 @@ end
 
 function Statistics.on_init()
 	global.statistics = {}
-	global.statistics.tops = {}
 	global.statistics.raw_data = {}
 	global.statistics.players_data = {}
 end
@@ -952,7 +1019,9 @@ function Statistics.on_configuration_changed(data)
 	if data.mod_changes	and data.mod_changes["Fed1sServerMod"] and data.mod_changes["Fed1sServerMod"].old_version then
 		-- Migrations --
 
-		if data.mod_changes["Fed1sServerMod"].old_version < "1.1.8" then
+		local major, minor, build = Statistics.split_version(data.mod_changes["Fed1sServerMod"].old_version)
+
+		if major < 1 or minor < 1 or build < 11 then
 			if global.statistics.gui then
 				global.statistics.gui = nil
 			end
@@ -968,48 +1037,15 @@ function Statistics.on_configuration_changed(data)
 					pinned_tops = {},
 					pin_side = "left"
 				}
+
+				Statistics.create_toggle_button(player, global.statistics.players_data[player_index])
 			end
 
-			if not global.statistics.tops then
-				global.statistics.tops = {}
-			end
-
-			for _, top_name in pairs(Statistics.top_names) do
-				Statistics.tops[top_name] = {}
-			end
-
-			global.statistics.updated = false
-			global.statistics.updates_max = table_size(Statistics.tops) * 3
-			global.statistics.updates_counter = 1
-
-			game.print("Fed1sServerMod migrated to version 1.1.10")
+			game.print("Fed1sServerMod migrated to version 1.1.11")
 		end
 	end
 end
 
-function Statistics.on_180_tick(event)
-	Statistics["calculate_"..Statistics.top_names[Statistics.counter]]()
-
-	if Statistics.counter < table_size(Statistics.top_names) then
-		Statistics.counter = Statistics.counter + 1
-	else
-		Statistics.counter = 1
-	end
-
-	if not global.statistics.updated then
-		if global.statistics.updates_counter < global.statistics.updates_max then
-			global.statistics.updates_counter = global.statistics.updates_counter + 1
-		else
-			global.statistics.updated = true
-			global.statistics.updates_max = nil
-			global.statistics.updates_counter = nil
-
-			for player_index, player in pairs(game.players) do
-				Statistics.create_toggle_button(player)
-			end
-		end
-	end
-end
 
 function Statistics.on_player_created(event)
 	global.statistics.players_data[event.player_index] = {
@@ -1019,9 +1055,7 @@ function Statistics.on_player_created(event)
 		pin_side = "left"
 	}
 
-	if global.statistics.updated then
-		Statistics.create_toggle_button(game.players[event.player_index])
-	end
+	Statistics.create_toggle_button(game.players[event.player_index])
 end
 
 function Statistics.on_player_joined_game(event)
@@ -1031,10 +1065,6 @@ function Statistics.on_player_joined_game(event)
 		player.gui.screen.statistics_window.destroy()
 		global.statistics.players_data[player.index].window = nil
 		Statistics.close_window(global.statistics.players_data[player.index])
-	end
-
-	if global.statistics.updated then
-		Statistics.create_toggle_button(player)
 	end
 end
 
@@ -1231,7 +1261,7 @@ end
 function Statistics.on_toggle_statistics_window(event)
 	local player_data = global.statistics.players_data[event.player_index]
 
-	if player_data and player_data.window then
+	if player_data.window then
 		Statistics.close_window(player_data)
 		return
 	end
@@ -1318,7 +1348,7 @@ end
 
 
 commands.add_command("profiler", "", on_toggle_profiler)
--- commands.add_command("print", "", on_print)
+commands.add_command("print", "", on_print)
 
 
 
@@ -1328,8 +1358,6 @@ local events = {}
 
 events.on_init = Statistics.on_init
 events.on_configuration_changed = Statistics.on_configuration_changed
-events.on_nth_tick = {}
-events.on_nth_tick[180] = Statistics.on_180_tick	
 
 events.events = {
 	[defines.events.on_player_created] = Statistics.on_player_created,
