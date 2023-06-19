@@ -9,7 +9,7 @@ local mod_gui = require("__core__/lualib/mod-gui")
 
 local Statistics = {}
 
-Statistics.updating = false
+Statistics.counter = 1
 
 Statistics.type_names = {
 	"builded",
@@ -54,12 +54,16 @@ end
 
 -- Staistics GUI --
 
-function Statistics.create_toggle_button(target_player, player_data)
+function Statistics.create_toggle_button(target_player, redraw)
 	local button_flow = mod_gui.get_button_flow(target_player)
 	local toggle_button = button_flow.statistics_toggle_window
 	
 	if toggle_button then
-		toggle_button.destroy()
+		if not redraw then
+			return
+		else
+			toggle_button.destroy()
+		end
 	end
 
 	button_flow.add{
@@ -281,9 +285,9 @@ end
 function Statistics.close_window(player_data)
 	if player_data.window then
 		player_data.window.destroy()
+		player_data.window = nil
 	end
 
-	player_data.window = nil
 	player_data.tops_menu = nil
 	player_data.top_header = nil
 	player_data.top_subheader = nil
@@ -850,20 +854,28 @@ function Statistics.get_raw_data_type(type_name)
 end
 
 function Statistics.get_player_raw_data_type(player_index, type_name)
-	local raw_data = Statistics.get_raw_data_type(type_name)
+    local raw_data = Statistics.get_raw_data_type(type_name)
 
-	if not raw_data[player_index] then
-		raw_data[player_index] = {}
-	end
-	
-	return raw_data[player_index]
+    if not raw_data[player_index] then
+        raw_data[player_index] = {}
+    end
+    
+    return raw_data[player_index]
 end
 
 function Statistics.get_top(top_name)
-	if global.statistics.updating then
-		return {}
-	end
-	
+	-- if global.statistics.updating then
+	-- 	return {}
+	-- end
+
+	-- local top = global.statistics.tops[top_name] or {}
+	-- local new_top = {}
+
+	-- for _, item in pairs(top) do
+	-- 	table.insert(new_top, item)
+	-- end
+
+	-- return new_top
 	return global.statistics.tops[top_name]
 end
 
@@ -956,8 +968,6 @@ function Statistics.on_configuration_changed(data)
 					pinned_tops = {},
 					pin_side = "left"
 				}
-
-				Statistics.create_toggle_button(player, global.statistics.players_data[player_index])
 			end
 
 			if not global.statistics.tops then
@@ -968,19 +978,37 @@ function Statistics.on_configuration_changed(data)
 				Statistics.tops[top_name] = {}
 			end
 
-			game.print("Fed1sServerMod migrated to version 1.1.9")
+			global.statistics.updated = false
+			global.statistics.updates_max = table_size(Statistics.tops) * 3
+			global.statistics.updates_counter = 1
+
+			game.print("Fed1sServerMod migrated to version 1.1.10")
 		end
 	end
 end
 
 function Statistics.on_180_tick(event)
-	Statistics.updating = true
+	Statistics["calculate_"..Statistics.top_names[Statistics.counter]]()
 
-	local counter = event.tick / 180 % table_size(Statistics.tops) + 1
+	if Statistics.counter < table_size(Statistics.top_names) then
+		Statistics.counter = Statistics.counter + 1
+	else
+		Statistics.counter = 1
+	end
 
-	Statistics["calculate_"..Statistics.top_names[counter]]()
+	if not global.statistics.updated then
+		if global.statistics.updates_counter < global.statistics.updates_max then
+			global.statistics.updates_counter = global.statistics.updates_counter + 1
+		else
+			global.statistics.updated = true
+			global.statistics.updates_max = nil
+			global.statistics.updates_counter = nil
 
-	Statistics.updating = false
+			for player_index, player in pairs(game.players) do
+				Statistics.create_toggle_button(player)
+			end
+		end
+	end
 end
 
 function Statistics.on_player_created(event)
@@ -991,10 +1019,9 @@ function Statistics.on_player_created(event)
 		pin_side = "left"
 	}
 
-	Statistics.create_toggle_button(
-		game.players[event.player_index],
-		global.statistics.players_data[event.player_index]
-	)
+	if global.statistics.updated then
+		Statistics.create_toggle_button(game.players[event.player_index])
+	end
 end
 
 function Statistics.on_player_joined_game(event)
@@ -1004,6 +1031,10 @@ function Statistics.on_player_joined_game(event)
 		player.gui.screen.statistics_window.destroy()
 		global.statistics.players_data[player.index].window = nil
 		Statistics.close_window(global.statistics.players_data[player.index])
+	end
+
+	if global.statistics.updated then
+		Statistics.create_toggle_button(player)
 	end
 end
 
