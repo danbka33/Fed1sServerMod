@@ -74,6 +74,7 @@ end
 
 
 function Statistics.build_statistics_window(player)
+	local player_data = global.statistics.players_data[player.index]
 	local window = player.gui.screen.add{type="frame", name="statistics_window", direction="vertical"}
 
 
@@ -122,7 +123,7 @@ function Statistics.build_statistics_window(player)
 		label.style.margin = 3
 		label.style.hovered_font_color = {1, 1, 0}
 
-		if top_name == global.statistics.players_data[player.index].current_top then
+		if top_name == player_data.current_top then
 			label.style.font = "default-bold"
 			label.style.font_color = {1, 1, 0}
 		else
@@ -197,12 +198,12 @@ function Statistics.build_statistics_window(player)
 
 	--
 
-	global.statistics.players_data[player.index].window = window
-	global.statistics.players_data[player.index].tops_menu = tops_menu
-	global.statistics.players_data[player.index].top_header = top_header
-	global.statistics.players_data[player.index].top_subheader = top_subheader
-	global.statistics.players_data[player.index].data_scroller = data_scroller
-	global.statistics.players_data[player.index].top_data = data
+	player_data.window = window
+	player_data.tops_menu = tops_menu
+	player_data.top_header = top_header
+	player_data.top_subheader = top_subheader
+	player_data.data_scroller = data_scroller
+	player_data.top_data = data
 
 
 	--
@@ -210,16 +211,14 @@ function Statistics.build_statistics_window(player)
 	return window
 end
 
-
 function Statistics.build_top_data(player_data)
 	-- Statistics["calculate_"..player_data.current_top]()
-	local top = Statistics.get_top(player_data.current_top)
 
-	if not player_data.current_top then
-		player_data.current_top = Statistics.top_names[1]
-		player_data.pinned_tops = {}
-		player_data.pin_side = "left"
+	if not player_data.window then
+		return
 	end
+
+	local top = Statistics.get_top(player_data.current_top)
 
 	player_data.top_header.caption = {"statistics."..player_data.current_top}
 	player_data.top_subheader.caption = {"statistics."..player_data.current_top.."-info"}
@@ -281,6 +280,19 @@ function Statistics.build_top_data(player_data)
 	end
 
 	player_data.data_scroller.scroll_to_top()
+end
+
+function Statistics.close_window(player_data)
+	if player_data.window then
+		player_data.window.destroy()
+	end
+
+	player_data.window = nil
+	player_data.tops_menu = nil
+	player_data.top_header = nil
+	player_data.top_subheader = nil
+	player_data.data_scroller = nil
+	player_data.top_data = nil
 end
 
 
@@ -826,32 +838,32 @@ function Statistics.on_init()
 	global.statistics.raw_data = global.statistics.raw_data or {}
 	global.statistics.tops = global.statistics.tops or {}
 	global.statistics.players_data = global.statistics.players_data or {}
-	global.statistics.gui = global.statistics.gui or {}
 end
 
 function Statistics.on_configuration_changed(data)
-	Statistics.on_init()
-
-	-- migrations
-
 	if not data then
 		return
 	end
 
-	if data.mod_changes
-	and data.mod_changes["Fed1sServerMod"]
-	and data.mod_changes["Fed1sServerMod"].old_version == "1.1.2"
-	then
-		for _, top_name in pairs(Statistics.top_names) do
-			global.statistics.tops[top_name] = {}
+	if data.mod_changes	and data.mod_changes["Fed1sServerMod"] then
+		-- Migrations --
+
+		if data.mod_changes["Fed1sServerMod"].old_version < "1.1.4" then
+			for _, top_name in pairs(Statistics.top_names) do
+				global.statistics.tops[top_name] = {}
+			end
+
+			for player_index, player in pairs(game.players) do
+				global.statistics.players_data[player_index] = {
+					current_top = Statistics.top_names[1],
+					pinned_tops = {},
+					pin_side = "left"
+				}
+			end
 		end
 
-		for player_index, player in pairs(game.players) do
-			global.statistics.players_data[player_index] = {
-				current_top = Statistics.top_names[1],
-				pinned_tops = {},
-				pin_side = "left"
-			}
+		if data.mod_changes["Fed1sServerMod"].old_version < "1.1.7" then
+			global.statistics.gui = nil
 		end
 	end
 
@@ -881,7 +893,7 @@ function Statistics.on_player_created(event)
 	end
 
 	global.statistics.players_data[event.player_index] = {
-		current_top = global.statistics.top_names[1],
+		current_top = Statistics.top_names[1],
 		pinned_tops = {},
 		pin_side = "left"
 	}
@@ -893,13 +905,11 @@ function Statistics.on_player_created(event)
 end
 
 function Statistics.on_player_joined_game(event)
-	if not global.statistics then
-		Statistics.on_init()
-	end
+	local player = game.players[event.player_index]
 
-	if global.statistics.gui[event.player_index] and global.statistics.gui[event.player_index].window then
-		global.statistics.gui[event.player_index].window.destroy()
-		global.statistics.gui[event.player_index].window = nil
+	if player.gui.screen.statistics_window then
+		player.gui.screen.statistics_window.destroy()
+		Statistics.close_window(global.statistics.players_data[player.index])
 	end
 end
 
@@ -1097,11 +1107,7 @@ function Statistics.on_toggle_statistics_window(event)
 	local player_data = global.statistics.players_data[event.player_index]
 
 	if player_data.window then
-		player_data.window.destroy()
-		player_data.window = nil
-		player_data.top_header = nil
-		player_data.top_subheader = nil
-		player_data.top_data = nil
+		Statistics.close_window(player_data)
 		return
 	end
 
@@ -1113,15 +1119,7 @@ function Statistics.on_toggle_statistics_window(event)
 end
 
 function Statistics.on_close_statistics_window(event)
-	local player_data = global.statistics.players_data[event.player_index]
-
-	player_data.window.destroy()
-	player_data.window = nil
-	player_data.tops_menu = nil
-	player_data.top_header = nil
-	player_data.top_subheader = nil
-	player_data.data_scroller = nil
-	player_data.top_data = nil
+	Statistics.close_window(global.statistics.players_data[event.player_index])
 end
 
 
