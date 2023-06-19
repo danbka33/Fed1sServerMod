@@ -9,7 +9,6 @@ local mod_gui = require("__core__/lualib/mod-gui")
 
 local Statistics = {}
 
-Statistics.counter = 1
 Statistics.updating = false
 
 Statistics.type_names = {
@@ -864,15 +863,7 @@ function Statistics.get_top(top_name)
 	if global.statistics.updating then
 		return {}
 	end
-
-	-- local top = global.statistics.tops[top_name] or {}
-	-- local new_top = {}
-
-	-- for _, item in pairs(top) do
-	-- 	table.insert(new_top, item)
-	-- end
-
-	-- return new_top
+	
 	return global.statistics.tops[top_name]
 end
 
@@ -974,14 +965,10 @@ function Statistics.on_configuration_changed(data)
 			end
 
 			for _, top_name in pairs(Statistics.top_names) do
-				global.statistics.tops[top_name] = {}
-			end			
+				Statistics.tops[top_name] = {}
+			end
 
-			-- for _, top_name in pairs(Statistics.top_names) do
-			-- 	Statistics["calculate_"..top_name]()
-			-- end
-
-			game.print("Fed1sServerMod migrated to version 1.1.8")
+			game.print("Fed1sServerMod migrated to version 1.1.9")
 		end
 	end
 end
@@ -989,13 +976,9 @@ end
 function Statistics.on_180_tick(event)
 	Statistics.updating = true
 
-	Statistics["calculate_"..Statistics.top_names[Statistics.counter]]()
+	local counter = event.tick / 180 % table_size(Statistics.tops) + 1
 
-	if Statistics.counter < table_size(Statistics.tops) then
-		Statistics.counter = Statistics.counter + 1
-	else
-		Statistics.counter = 1
-	end
+	Statistics["calculate_"..Statistics.top_names[counter]]()
 
 	Statistics.updating = false
 end
