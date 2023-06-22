@@ -853,6 +853,8 @@ function Statistics.on_configuration_changed(data)
 				global.statistics.tops[top_name] = {}
 			end
 
+			global.statistics.players_data = {}
+
 			for player_index, player in pairs(game.players) do
 				global.statistics.players_data[player_index] = {
 					current_top = Statistics.top_names[1],
