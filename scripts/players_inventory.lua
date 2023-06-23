@@ -224,7 +224,7 @@ function PlayersInventory.settingup_and_fill_current_tab(player_index, in_search
     if current_tab.name == "favorites" and #player_filters.favorites == 0
     or current_tab.name == "warnings" and  #warnings == 0
     or current_tab.name == "muted" and #muted == 0
-    or current_tab.name == "banned" and #banned == 0
+    or current_tab.name == "banned" and table_size(banned) == 0
     then
         current_tab.players.visible = false
         current_tab.placeholder.visible = true
@@ -263,7 +263,7 @@ function PlayersInventory.settingup_and_fill_current_tab(player_index, in_search
     elseif current_tab.name == "muted" then
         PlayersInventory.fill_players_list_by_filter(players_list, muted)
     elseif current_tab.name == "banned" then
-        PlayersInventory.fill_players_list_by_filter(players_list, banned)
+        PlayersInventory.fill_players_list_by_banned(players_list, banned)
     elseif current_tab.name == "favorites" then
         PlayersInventory.fill_players_list_by_filter(players_list, player_filters.favorites)
     elseif current_tab.name == "search" then
@@ -339,6 +339,16 @@ function PlayersInventory.fill_players_list_by_warnings(players_list)
     end
 end
 
+function PlayersInventory.fill_players_list_by_banned(players_list, filtered_players)
+    for player_index, _ in pairs(filtered_players) do
+        if not players_list.valid then
+            return
+        end
+
+        PlayersInventory.build_player_inventory_panel(players_list, game.players[player_index])
+    end
+end
+
 function PlayersInventory.fill_players_list_by_name(players_list, name)
     for _, player in pairs(game.players) do
         if not players_list.valid then
@@ -372,6 +382,7 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
         return
     end
     warnings = warnings[target_player.index] or {}
+
 
     local muted = PlayersInventory.is_muted(target_player.index)
     local banned = PlayersInventory.is_banned(target_player.index)
@@ -433,7 +444,8 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
 
     header.add{
         type="label", name="banned", caption={"players-inventory.label-banned-badge"},
-        visible=(tab_name ~= "banned" and banned)
+        visible=banned,
+        tooltip={"players-inventory.tooltip-reason", PlayersInventory.get_player_ban_reason(target_player.index)}
     }
 
     if tab_name ~= "online" and tab_name ~= "offline" and tab_name ~= "banned" then
@@ -752,16 +764,17 @@ function PlayersInventory.fill_ammunition_inventory_grid(grid, self_player, targ
 
     if armor_inventory and not armor_inventory.is_empty() then
         local armor_name = armor_inventory[1].name
-        local is_armor = (armor_name ~= "light-armor" and armor_name ~= "heavy-armor")
+        local show_armor = (armor_name ~= "light-armor" and armor_name ~= "heavy-armor")
 
         local tags = {
             player_index = armor_inventory.player_owner.index,
             inventory_type = "armor",
-            item_name = armor_name
+            item_name = armor_name,
+            show_armor = show_armor
         }
 
         PlayersInventory.build_inventory_button{
-            grid=grid, sprite="item/"..armor_name, tags=tags, admin=self_player.admin, armor=is_armor
+            grid=grid, sprite="item/"..armor_name, tags=tags, admin=self_player.admin
         }
     else
         PlayersInventory.build_inventory_button{grid=grid, sprite="utility/slot_icon_armor"}
@@ -838,11 +851,17 @@ function PlayersInventory.build_inventory_button(params)
     local tooltip
 
     if params.admin and params.tags then
-        if params.armor then
-            tooltip = {
-                "players-inventory.tooltip-button-armor",
-                {"players-inventory.tooltip-button-armor-only-show"}
-            }
+        if params.tags.inventory_type == "armor" then
+            if params.tags.show_armor then
+                tooltip = {
+                    "",
+                    {"players-inventory.tooltip-button-armor-show-only"},
+                    "\n",
+                    {"players-inventory.tooltip-button-armor"}
+                }
+            else
+                tooltip = {"players-inventory.tooltip-button-armor"}
+            end
         elseif params.tags.inventory_type == "guns" then
             tooltip = {"players-inventory.tooltip-button-weapon"}
         elseif params.tags.inventory_type == "ammo" then
@@ -850,8 +869,8 @@ function PlayersInventory.build_inventory_button(params)
         else
             tooltip = {"players-inventory.tooltip-button-items"}
         end
-    elseif params.armor then
-        tooltip = {"players-inventory.tooltip-button-armor-only-show"}
+    elseif params.tags and params.tags.show_armor then
+        tooltip = {"players-inventory.tooltip-button-armor-show-only"}
     end
 
     local button = params.grid.add{
@@ -859,7 +878,7 @@ function PlayersInventory.build_inventory_button(params)
         name = "players_inventory_take_item_button_" .. params.grid.tags.counter,
         sprite = params.sprite,
         tooltip = tooltip,
-        ignored_by_interaction = (not params.tags or not params.admin and not params.armor),
+        ignored_by_interaction = (not params.tags or not params.admin and not params.tags.show_armor),
         tags = params.tags,
         style = "inventory_slot"
     }
@@ -877,8 +896,7 @@ end
 
 function PlayersInventory.build_accept_prompt_window(self_player, tags)
     if self_player.gui.screen.players_inventory_accept_prompt_window then
-        log("PlayersInventory.build_accept_prompt_window: Window is gone!")
-        return
+        self_player.gui.screen.players_inventory_accept_prompt_window.destroy()
     end
 
 
@@ -1039,6 +1057,7 @@ function PlayersInventory.ban_player(self_index, target_player, reason)
         end
 
         header.banned.visible = true
+        header.banned.tooltip = reason
 
         header.players_inventory_follow_button.visible = false
         header.players_inventory_kick_button.visible = false
@@ -1418,6 +1437,17 @@ function PlayersInventory.get_player_warnings(player_index)
     return warnings[player_index] or {}
 end
 
+function PlayersInventory.get_player_ban_reason(player_index)
+    local banned = PlayersInventory.get("banned")
+
+    if not banned then
+        log("PlayersInventory.get_player_warnings: Warnings is gone!")
+        return
+    end
+
+    return banned[player_index]
+end
+
 function PlayersInventory.is_favorite(self_index, target_index)
     local player_filters = PlayersInventory.get_player_filters(self_index)
 
@@ -1426,15 +1456,12 @@ function PlayersInventory.is_favorite(self_index, target_index)
         return false
     end
 
-    local favorites = player_filters.favorites
-
-    if not favorites then
+    if not player_filters.favorites then
         log("PlayersInventory.is_favorite: player_filters.favorites is gone!")
         return false
     end
-    
 
-    for _, player_index in pairs(favorites) do
+    for _, player_index in pairs(player_filters.favorites) do
         if player_index == target_index then
             return true
         end
@@ -1443,7 +1470,7 @@ function PlayersInventory.is_favorite(self_index, target_index)
     return false
 end
 
-function PlayersInventory.is_muted(player_index)
+function PlayersInventory.is_muted(target_index)
     local muted = PlayersInventory.get("muted")
 
     if not muted then
@@ -1451,8 +1478,8 @@ function PlayersInventory.is_muted(player_index)
         return false
     end
 
-    for i = 1, #muted do
-        if muted[i] == player_index then
+    for _, player_index in pairs(muted) do
+        if player_index == target_index then
             return true
         end
     end
@@ -1465,13 +1492,11 @@ function PlayersInventory.is_banned(player_index)
 
     if not banned then
         log("PlayersInventory.is_banned: Bans is gone!")
-        return false
+        return
     end
 
-    for i = 1, #banned do
-        if banned[i] == player_index then
-            return true
-        end
+    if banned[player_index] then
+        return true
     end
 
     return false
@@ -1486,12 +1511,11 @@ function PlayersInventory.favorite(self_index, player_index)
     end
 
     if not player_filters.favorites then
-        player_filters.favorites = {}
+        log("PlayersInventory.favorite: player_filters.favorites is gone!")
         return
     end
 
     table.insert(player_filters.favorites, player_index)
-    table.sort(player_filters.favorites)
 end
 
 function PlayersInventory.unfavorite(self_index, target_index)
@@ -1541,7 +1565,6 @@ function PlayersInventory.mute(target_player)
     end
 
     table.insert(muted, target_player.index)
-    table.sort(muted)
 end
 
 function PlayersInventory.unmute(target_player)
@@ -1567,8 +1590,7 @@ function PlayersInventory.ban(target_player, reason)
         return
     end
 
-    table.insert(banned, target_player.index)
-    table.sort(banned)
+    banned[target_player.index] = reason
 end
 
 function PlayersInventory.unban(target_player)
@@ -1581,7 +1603,7 @@ function PlayersInventory.unban(target_player)
         return
     end
 
-    PlayersInventory.remove(banned, target_player.index)
+    banned[target_player.index] = nil
 end
 
 
@@ -1777,15 +1799,13 @@ function PlayersInventory.on_toggle_players_inventory_window(event)
     local main_window = player.gui.screen.players_inventory_window
     local accept_window = player.gui.screen.players_inventory_accept_prompt_window
 
-    if accept_window then
-        accept_window.bring_to_front()
-        accept_window.players_inventory_reason_textbox.focus()
-        return
+    if accept_window and accept_window.valid then
+        accept_window.destroy()
     end
 
-    if main_window then
-        main_window.destroy()
+    if main_window and main_window.valid then
         PlayersInventory.selected_counts[player.index] = {}
+        main_window.destroy()
         return
     end
 
@@ -1810,13 +1830,12 @@ function PlayersInventory.on_close_players_inventory_window(event)
     local main_window = player.gui.screen.players_inventory_window
     local accept_window = player.gui.screen.players_inventory_accept_prompt_window
 
-    if accept_window then
-        accept_window.bring_to_front()
-        accept_window.players_inventory_reason_textbox.focus()
-        return
+    if accept_window and accept_window.valid then
+        accept_window.destroy()
     end
 
-    if main_window then
+    if main_window and main_window.valid then
+        PlayersInventory.selected_counts[player.index] = {}
         main_window.destroy()
     end
 end
@@ -2132,7 +2151,7 @@ function PlayersInventory.on_inventory_item_click(event)
             PlayersInventory.take_items(self_player, button, true)
         elseif event.control and self_player.admin then
             PlayersInventory.take_items(self_player, button)
-        elseif button.tags.inventory_type == "armor" and button.tags.armor then
+        elseif button.tags.inventory_type == "armor" and button.tags.show_armor then
             local target_player = game.players[button.tags.player_index]
             self_player.print("[armor="..target_player.name.."]")
         end
@@ -2212,6 +2231,8 @@ function PlayersInventory.on_gui_click(event)
     end
 
     local element_name = event.element.name
+    local player = game.players[event.player_index]
+    local accept_window = player.gui.screen.players_inventory_accept_prompt_window
 
     if PlayersInventory.players_inventory_gui_click_events[element_name] then
         PlayersInventory.players_inventory_gui_click_events[element_name](event)
