@@ -9,8 +9,6 @@ local mod_gui = require("__core__/lualib/mod-gui")
 
 local Statistics = {}
 
-Statistics.counter = 1
-
 Statistics.type_names = {
 	"builded",
 	"killed",
@@ -45,26 +43,26 @@ Statistics.top_names = {
 	"electricians",
 	"fishermans"
 }
-Statistics.tops = {}
-for _, top_name in pairs(Statistics.top_names) do
-	Statistics.tops[top_name] = top_name
-end
 
 
 
 -- Staistics GUI --
 
-function Statistics.create_toggle_button(target_player, player_data)
+function Statistics.create_toggle_button(target_player, redraw)
 	local button_flow = mod_gui.get_button_flow(target_player)
-	local toggle_button = button_flow.statistics_toggle_window
+	local toggle_button = button_flow.statistics_toggle_window_button
 	
-	if toggle_button then
-		toggle_button.destroy()
+	if toggle_button and toggle_button.valid then
+		if redraw then
+			toggle_button.destroy()
+		else
+			return
+		end
 	end
 
-	player_data.toggle_button = button_flow.add{
+	button_flow.add{
 		type = "sprite-button",
-		name = "statistics_toggle_window",
+		name = "statistics_toggle_window_button",
 		sprite = "statistics_white",
 		hovered_sprite = "statistics_black",
 		clicked_sprite = "statistics_black",
@@ -109,27 +107,38 @@ function Statistics.build_statistics_window(player)
 
 	-- Tops list --
 
-	local tops_menu = content.add{type="scroll-pane", name="tops_menu", direction="vertical"}
+	local left_panel = content.add{type="flow", name="left_panel", direction="vertical"}
+
+	local tops_menu = left_panel.add{type="scroll-pane", name="tops_menu", direction="vertical"}
 	tops_menu.style.margin = 10
 	tops_menu.style.width = 200
 	
 	for _, top_name in pairs(Statistics.top_names) do
-		local label = tops_menu.add{
+		local menu_item_style
+
+		if player_data and top_name == player_data.current_top then
+			menu_item_style = "statistics_menu_current_item"
+		else
+			menu_item_style = "statistics_menu_item"
+		end
+
+		tops_menu.add{
 			type = "label",
 			name = "statistics_top_"..top_name,
 			caption = {"statistics."..top_name},
-			tags = {top_name=top_name}
+			tags = {top_name=top_name},
+			style = menu_item_style
 		}
-		label.style.margin = 3
-		label.style.hovered_font_color = {1, 1, 0}
+	end
 
-		if top_name == player_data.current_top then
-			label.style.font = "default-bold"
-			label.style.font_color = {1, 1, 0}
-		else
-			label.style.font = "default"
-			label.style.font_color = {1, 1, 1}
-		end
+	if player.admin then
+		local spacer = left_panel.add{type="empty-widget"}
+		spacer.style.vertically_stretchable = true
+
+		left_panel.add{
+			type="checkbox", name="statistics_show_all_checkbox", state=global.statistics.show_button,
+			caption={"statistics.caption-show-buttons"}, tooltip={"statistics.tooltip-show-buttons"}
+		}
 	end
 
 
@@ -187,9 +196,9 @@ function Statistics.build_statistics_window(player)
 	local data_scroller = top.add{type="scroll-pane", name="data_scroller", direction="vertical"}
 	data_scroller.style.horizontally_stretchable = true
 
-	local data = data_scroller.add{
+	local top_data = data_scroller.add{
 		type = "table",
-		name = "data",
+		name = "top_data",
 		column_count = 3,
 		ignored_by_interaction = true,
 		draw_horizontal_lines = true
@@ -203,7 +212,7 @@ function Statistics.build_statistics_window(player)
 	player_data.top_header = top_header
 	player_data.top_subheader = top_subheader
 	player_data.data_scroller = data_scroller
-	player_data.top_data = data
+	player_data.top_data = top_data
 
 
 	--
@@ -212,82 +221,82 @@ function Statistics.build_statistics_window(player)
 end
 
 function Statistics.build_top_data(player_data)
-	-- Statistics["calculate_"..player_data.current_top]()
-
-	if not player_data.window then
-		return
-	end
-
 	local top = Statistics.get_top(player_data.current_top)
+
+	for _, element in pairs(player_data.tops_menu.children) do
+		if element.tags.top_name == player_data.current_top then
+			element.style = "statistics_menu_current_item"
+		elseif element.style.name == "statistics_menu_current_item" then
+			element.style = "statistics_menu_item"
+		end
+	end
 
 	player_data.top_header.caption = {"statistics."..player_data.current_top}
 	player_data.top_subheader.caption = {"statistics."..player_data.current_top.."-info"}
 
 	player_data.top_data.clear()
 
-	if #top < 1 then
+	if not top then
 		player_data.top_data.add{
 			type = "label",
 			caption = {"statistics.no-data"}
 		}
-	end
 
-	for _, element in pairs(player_data.tops_menu.children) do
-		if element.tags.top_name == player_data.current_top then
-			element.style.font = "default-bold"
-			element.style.font_color = {1, 1, 0}
-		else
-			element.style.font = "default"
-			element.style.font_color = {1, 1, 1}
-		end
+		goto exit
 	end
 
 	for place, data in pairs(top) do
+		local place_style, player_style, amount_style
+
+		if place < 4 then
+			place_style = "statistics_first_three_place"
+			player_style = "statistics_first_three_player"
+			amount_style = "statistics_first_three_amount"
+		elseif place < 11 then
+			place_style = "statistics_first_ten_place"
+			player_style = "statistics_first_ten_player"
+			amount_style = "statistics_first_ten_amount"
+		else
+			place_style = "statistics_place"
+			player_style = "statistics_player"
+			amount_style = "statistics_amount"
+		end
+
 		local label_place = player_data.top_data.add{
 			type = "label",
-			caption = place
+			caption = place,
+			style = place_style
 		}
-		label_place.style.width = 30
-		label_place.style.margin = 3
-		label_place.style.horizontal_align = "right"
 
 		local label_player = player_data.top_data.add{
 			type = "label",
-			caption = game.players[data.player_index].name
+			caption = game.players[data.player_index].name,
+			style = player_style
 		}
-		label_player.style.width = 320
-		label_player.style.margin = 3
 
 		local label_amount = player_data.top_data.add{
 			type = "label",
-			caption = data.amount
+			caption = data.amount,
+			style = amount_style
 		}
-		label_amount.style.width = 100
-		label_amount.style.margin = 3
-		label_amount.style.horizontal_align = "right"
-
-		if place < 11 then
-			label_place.style.font = "default-bold"
-			label_player.style.font = "default-bold"
-			label_amount.style.font = "default-bold"
-		end
-
-		if place < 4 then
-			label_place.style.font_color = {1, 1, 0}
-			label_player.style.font_color = {1, 1, 0}
-			label_amount.style.font_color = {1, 1, 0}
-		end
 	end
+
+	::exit::
 
 	player_data.data_scroller.scroll_to_top()
 end
 
 function Statistics.close_window(player_data)
-	if player_data.window then
-		player_data.window.destroy()
+	if not player_data then
+		log("Statistics.close_window: player_data is gone!")
+		return
 	end
 
-	player_data.window = nil
+	if player_data.window then
+		player_data.window.destroy()
+		player_data.window = nil
+	end
+
 	player_data.tops_menu = nil
 	player_data.top_header = nil
 	player_data.top_subheader = nil
@@ -301,13 +310,18 @@ end
 
 function Statistics.calculate_builders()
 	local builded = Statistics.get_raw_data_type(Statistics.types.builded)
+
+    if not builded then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, items in pairs(builded) do
 		local amount = 0
 
 		for item_name, count in pairs(items) do
-			if item_name ~= "ghosts" then
+			if item_name ~= "ghosts" and not Statistics.is_walkpath(item_name) then
 				amount = amount + count
 			end
 		end
@@ -318,12 +332,22 @@ function Statistics.calculate_builders()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.builders)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_architectors()
 	local builded = Statistics.get_raw_data_type(Statistics.types.builded)
+
+	if not builded then
+    	return
+    end
+
+
 	local top = {}
 
 	for player_index, items in pairs(builded) do
@@ -345,12 +369,21 @@ function Statistics.calculate_architectors()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.architectors)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_military_enginears()
 	local builded = Statistics.get_raw_data_type(Statistics.types.builded)
+
+	if not builded then
+    	return
+    end
+
 	local top = {}
 
 	local function calculate(items)
@@ -376,12 +409,21 @@ function Statistics.calculate_military_enginears()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.military_enginears)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_crafters()
 	local crafted = Statistics.get_raw_data_type(Statistics.types.crafted)
+
+	if not crafted then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, items in pairs(crafted) do
@@ -397,12 +439,21 @@ function Statistics.calculate_crafters()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.crafters)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_repairemans()
 	local repaired = Statistics.get_raw_data_type(Statistics.types.repaired)
+
+	if not repaired then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, items in pairs(repaired) do
@@ -418,12 +469,21 @@ function Statistics.calculate_repairemans()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.repairemans)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_wariors()
 	local killed = Statistics.get_raw_data_type(Statistics.types.killed)
+
+	if not killed then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, items in pairs(killed) do
@@ -447,12 +507,22 @@ function Statistics.calculate_wariors()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.wariors)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_tree_haters()
 	local killed = Statistics.get_raw_data_type(Statistics.types.killed)
+
+	if not killed then
+    	return
+    end
+
+
 	local top = {}
 
 	for player_index, items in pairs(killed) do
@@ -482,12 +552,21 @@ function Statistics.calculate_tree_haters()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.tree_haters)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_rock_haters()
 	local killed = Statistics.get_raw_data_type(Statistics.types.killed)
+
+	if not killed then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, items in pairs(killed) do
@@ -517,12 +596,21 @@ function Statistics.calculate_rock_haters()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.rock_haters)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_miners()
 	local mined = Statistics.get_raw_data_type(Statistics.types.mined)
+
+	if not mined then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, items in pairs(mined) do
@@ -540,12 +628,21 @@ function Statistics.calculate_miners()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.miners)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_deaths()
 	local deaths = Statistics.get_raw_data_type(Statistics.types.deaths)
+
+	if not deaths then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, forces in pairs(deaths) do
@@ -567,13 +664,20 @@ function Statistics.calculate_deaths()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.deaths)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_railwaymans()
 	local builded = Statistics.get_raw_data_type(Statistics.types.builded)
-	local top = {}
+
+	if not builded then
+    	return
+    end
 
 	local function calculate(items)
 		local amount = 0
@@ -589,6 +693,8 @@ function Statistics.calculate_railwaymans()
 		return amount
 	end
 
+	local top = {}
+
 	for player_index, items in pairs(builded) do
 		local amount = calculate(items)
 
@@ -598,12 +704,21 @@ function Statistics.calculate_railwaymans()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.railwaymans)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_runners()
 	local walked = Statistics.get_raw_data_type(Statistics.types.walked)
+
+	if not walked then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, transports in pairs(walked) do
@@ -619,12 +734,21 @@ function Statistics.calculate_runners()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.runners)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_lumberjacks()
 	local mined = Statistics.get_raw_data_type(Statistics.types.mined)
+
+	if not mined then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, items in pairs(mined) do
@@ -642,12 +766,21 @@ function Statistics.calculate_lumberjacks()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.lumberjacks)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_mariobrothers()
 	local builded = Statistics.get_raw_data_type(Statistics.types.builded)
+
+	if not builded then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, items in pairs(builded) do
@@ -665,12 +798,21 @@ function Statistics.calculate_mariobrothers()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.mariobrothers)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_oilmans()
 	local builded = Statistics.get_raw_data_type(Statistics.types.builded)
+
+	if not builded then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, items in pairs(builded) do
@@ -688,12 +830,21 @@ function Statistics.calculate_oilmans()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.oilmans)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_roadworkers()
 	local builded = Statistics.get_raw_data_type(Statistics.types.builded)
+
+	if not builded then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, items in pairs(builded) do
@@ -711,12 +862,21 @@ function Statistics.calculate_roadworkers()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.roadworkers)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_electricians()
 	local builded = Statistics.get_raw_data_type(Statistics.types.builded)
+
+	if not builded then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, items in pairs(builded) do
@@ -734,12 +894,21 @@ function Statistics.calculate_electricians()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.electricians)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 function Statistics.calculate_fishermans()
 	local mined = Statistics.get_raw_data_type(Statistics.types.mined)
+
+	if not mined then
+    	return
+    end
+
 	local top = {}
 
 	for player_index, items in pairs(mined) do
@@ -749,8 +918,12 @@ function Statistics.calculate_fishermans()
 	end
 
 	if #top > 0 then
-		Statistics.sort_and_set_top(top, Statistics.tops.fishermans)
+		Statistics.sort(top)
+	else
+		top = nil
 	end
+
+	return top
 end
 
 
@@ -762,23 +935,39 @@ function Statistics.get_raw_data_type(type_name)
 end
 
 function Statistics.get_player_raw_data_type(player_index, type_name)
-	local raw_data = Statistics.get_raw_data_type(type_name)
+    local raw_data = Statistics.get_raw_data_type(type_name)
 
-	if not raw_data[player_index] then
-		raw_data[player_index] = {}
-	end
-
-	return raw_data[player_index]
+    if not raw_data[player_index] then
+        raw_data[player_index] = {}
+    end
+    
+    return raw_data[player_index]
 end
 
 function Statistics.get_top(top_name)
-	return global.statistics.tops[top_name] or {}
+	return Statistics["calculate_"..top_name]()
 end
 
 
-function Statistics.sort_and_set_top(top, top_name)
+function Statistics.sort(top)
 	table.sort(top, function(first, second) return first.amount > second.amount end)
-	global.statistics.tops[top_name] = top
+end
+
+function Statistics.split_version(str)
+	local start_index = 1, end_index, major, minor, build
+	
+	end_index = string.find(str, ".", start_index, true)
+	major = tonumber(string.sub(str, start_index, end_index))
+
+	start_index = end_index + 1
+	end_index = string.find(str, ".", start_index, true)
+	minor = tonumber(string.sub(str, start_index, end_index))
+
+	start_index = end_index + 1
+	end_index = string.find(str, ".", start_index, true)
+	build = tonumber(string.sub(str, start_index, end_index))
+
+	return major, minor, build
 end
 
 
@@ -834,10 +1023,10 @@ end
 -- Events handlers --
 
 function Statistics.on_init()
-	global.statistics = global.statistics or {}
-	global.statistics.raw_data = global.statistics.raw_data or {}
-	global.statistics.tops = global.statistics.tops or {}
-	global.statistics.players_data = global.statistics.players_data or {}
+	global.statistics = {}
+	global.statistics.show_button = true
+	global.statistics.raw_data = {}
+	global.statistics.players_data = {}
 end
 
 function Statistics.on_configuration_changed(data)
@@ -845,65 +1034,60 @@ function Statistics.on_configuration_changed(data)
 		return
 	end
 
-	if data.mod_changes	and data.mod_changes["Fed1sServerMod"] then
+	if data.mod_changes	and data.mod_changes["Fed1sServerMod"] and data.mod_changes["Fed1sServerMod"].old_version then
 		-- Migrations --
 
-		if data.mod_changes["Fed1sServerMod"].old_version < "1.1.4" then
-			for _, top_name in pairs(Statistics.top_names) do
-				global.statistics.tops[top_name] = {}
+		local major, minor, build = Statistics.split_version(data.mod_changes["Fed1sServerMod"].old_version)
+
+		if major <= 1 or minor <= 1 or build < 11 then
+			if global.statistics.gui then
+				global.statistics.gui = nil
 			end
 
-			global.statistics.players_data = {}
+			if not global.statistics.show_button then
+				global.statistics.show_button = true
+			end
 
+			if not global.statistics.players_data then
+				global.statistics.players_data = {}
+			end
+			
 			for player_index, player in pairs(game.players) do
 				global.statistics.players_data[player_index] = {
 					current_top = Statistics.top_names[1],
+					favorite_tops = {},
 					pinned_tops = {},
 					pin_side = "left"
 				}
+
+				local button_flow = mod_gui.get_button_flow(player)
+
+				if button_flow.statistics_toggle_window
+				and button_flow.statistics_toggle_window.valid
+				then
+					button_flow.statistics_toggle_window.destroy()
+				end
+
+				Statistics.create_toggle_button(player)
 			end
-		end
 
-		if data.mod_changes["Fed1sServerMod"].old_version < "1.1.7" then
-			global.statistics.gui = nil
+			log("Fed1sServerMod.Statistics migrated to version "..data.mod_changes["Fed1sServerMod"].new_version)
 		end
-	end
-
-	for player_index, player in pairs(game.players) do
-		Statistics.create_toggle_button(player, global.statistics.players_data[player_index])
 	end
 end
 
-function Statistics.on_nth_tick(event)
-	-- local profiler = game.create_profiler()
-	Statistics["calculate_"..Statistics.top_names[Statistics.counter]]()
-	-- profiler.stop()
-	-- printp({"", Statistics.top_names[Statistics.counter], " - ", profiler})
-	-- local top_name = Statistics.top_names[Statistics.counter]
-	-- printp(top_name..":\n\n"..serpent.block(Statistics.get_top(top_name)))
-
-	if Statistics.counter < table_size(Statistics.tops) then
-		Statistics.counter = Statistics.counter + 1
-	else
-		Statistics.counter = 1
-	end
-end
 
 function Statistics.on_player_created(event)
-	if not global.statistics.players_data then
-		global.statistics.players_data = {}
-	end
-
 	global.statistics.players_data[event.player_index] = {
 		current_top = Statistics.top_names[1],
+		favorite_tops = {},
 		pinned_tops = {},
 		pin_side = "left"
 	}
 
-	Statistics.create_toggle_button(
-		game.players[event.player_index],
-		global.statistics.players_data[event.player_index]
-	)
+	if global.statistics.show_button then
+		Statistics.create_toggle_button(game.players[event.player_index])
+	end
 end
 
 function Statistics.on_player_joined_game(event)
@@ -911,6 +1095,7 @@ function Statistics.on_player_joined_game(event)
 
 	if player.gui.screen.statistics_window then
 		player.gui.screen.statistics_window.destroy()
+		global.statistics.players_data[player.index].window = nil
 		Statistics.close_window(global.statistics.players_data[player.index])
 	end
 end
@@ -1016,7 +1201,7 @@ function Statistics.on_entity_died(event)
 end
 
 function Statistics.on_player_mined_item(event)
-	if not event.item_stack then
+	if not event.item_stack or not event.item_stack.valid then
 		return
 	end
 
@@ -1025,7 +1210,7 @@ function Statistics.on_player_mined_item(event)
 end
 
 function Statistics.on_player_crafted_item(event)
-	if not event.item_stack then
+	if not event.item_stack or not event.item_stack.valid then
 		return
 	end
 
@@ -1084,7 +1269,7 @@ function Statistics.on_top(event)
 			return
 		end
 
-		local max_index = table_size(top)
+		local max_index = #top
 
 		if max_index > 10 then
 			max_index = 10
@@ -1113,7 +1298,7 @@ function Statistics.on_toggle_statistics_window(event)
 		return
 	end
 
-	local window = Statistics.build_statistics_window(game.players[event.player_index], player_data)
+	local window = Statistics.build_statistics_window(game.players[event.player_index])
 
 	Statistics.build_top_data(player_data)
 
@@ -1126,10 +1311,6 @@ end
 
 
 function Statistics.on_top_click(event)
-	if not event.element or not event.element.valid then
-		return
-	end
-
 	if not event.element.tags or not event.element.tags.top_name then
 		return
 	end
@@ -1140,8 +1321,41 @@ function Statistics.on_top_click(event)
 	Statistics.build_top_data(player_data)
 end
 
+function Statistics.on_gui_checked_state_changed(event)
+	local element = event.element
+
+	if not element or not element.valid then
+		return
+	end
+
+	if element.name ~= "statistics_show_all_checkbox" then
+		return
+	end
+
+	for _, player in pairs(game.players) do
+		if not player.admin then
+
+			if element.state then
+				Statistics.create_toggle_button(player, true)
+			else
+				local button_flow = mod_gui.get_button_flow(player)
+
+				if button_flow.statistics_toggle_window_button
+				and button_flow.statistics_toggle_window_button.valid
+				then
+					button_flow.statistics_toggle_window_button.destroy()
+				end
+
+				Statistics.close_window(global.statistics.players_data[player.index])
+			end
+		end
+	end
+
+	global.statistics.show_button = element.state
+end
+
 function Statistics.on_gui_click(event)
-    if not event.element.valid then
+    if not event.element or not event.element.valid then
         return
     end
 
@@ -1155,40 +1369,13 @@ function Statistics.on_gui_click(event)
 end
 
 Statistics.gui_click_events = {
-	["statistics_toggle_window"] = Statistics.on_toggle_statistics_window,
+	["statistics_toggle_window_button"] = Statistics.on_toggle_statistics_window,
 	["statistics_close_window_button"] = Statistics.on_close_statistics_window
 }
-
-	-- ["statistics_clear_search"] = Statistics.on_clear_search,
-
-	-- ["statistics_expand_button"] = Statistics.on_toggle_expand_panel,
-
-	-- ["statistics_follow_button"] = Statistics.on_follow_player,
-	-- ["statistics_favorite_button"] = Statistics.on_favorite_click,
-
-	-- ["statistics_promotion_button"] = Statistics.on_promotion_click,
-
-	-- ["statistics_warn_button"] = Statistics.on_punish_player,
-	-- ["statistics_mute_button"] = Statistics.on_mute_click,
-	-- ["statistics_kick_button"] = Statistics.on_punish_player,
-	-- ["statistics_ban_button"] = Statistics.on_ban_click,
-
-	-- ["statistics_accept_punishment_button"] = Statistics.on_punishment_accept,
-	-- ["statistics_cancel_punishment_button"] = Statistics.on_punishment_closecancel,
-	-- ["statistics_close_accept_prompt_window_button"] = Statistics.on_punishment_closecancel,
-
-	-- ["statistics_give_button"] = Statistics.on_give_button_click,
-	-- ["statistics_take_selected_button"] = Statistics.on_take_selected_click
 
 
 
 -- Profiler and debug --
-
-function on_reinit(event)
-	-- global.statistics = nil
-	Statistics.on_init()
-	-- global.statistics.raw_data.deaths = {}
-end
 
 function on_toggle_profiler(event)
 	if not game.players[event.player_index].admin then
@@ -1205,7 +1392,7 @@ function on_toggle_profiler(event)
 	global.statistics.profiler_gui.style.width = 400
 	global.statistics.profiler_gui.style.height = 600
 
-	printp(serpent.block(global.statistics.raw_data))
+	-- printp(serpent.block(global.statistics.raw_data))
 end
 
 function on_print(event)
@@ -1225,20 +1412,18 @@ function printp(caption, add)
 end
 
 
-
--- commands.add_command("reinit", "", on_reinit)
--- commands.add_command("profiler", "", on_toggle_profiler)
--- commands.add_command("print", "", on_print)
+commands.add_command("profiler", "", on_toggle_profiler)
+commands.add_command("print", "", on_print)
 
 
 
 -- Module events handler --
 
 local events = {}
+
 events.on_init = Statistics.on_init
 events.on_configuration_changed = Statistics.on_configuration_changed
-events.on_nth_tick = {}
-events.on_nth_tick[180] = Statistics.on_nth_tick
+
 events.events = {
 	[defines.events.on_player_created] = Statistics.on_player_created,
 	[defines.events.on_player_joined_game] = Statistics.on_player_joined_game,
@@ -1250,7 +1435,8 @@ events.events = {
 	[defines.events.on_entity_died] = Statistics.on_entity_died,
 	[defines.events.on_player_mined_item] = Statistics.on_player_mined_item,
 	[defines.events.on_player_crafted_item] = Statistics.on_player_crafted_item,
-	[defines.events.on_gui_click] = Statistics.on_gui_click
+	[defines.events.on_gui_click] = Statistics.on_gui_click,
+	[defines.events.on_gui_checked_state_changed] = Statistics.on_gui_checked_state_changed
 }
 
 EventHandler.add_lib(events)
