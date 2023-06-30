@@ -3,8 +3,6 @@ recipe_radar_passive.name = "radar-passive"
 recipe_radar_passive.enabled = true
 recipe_radar_passive.result = "radar-passive"
 
-data.raw.recipe["radar"].enabled = false
-
 data:extend({
     recipe_radar_passive,
     {
