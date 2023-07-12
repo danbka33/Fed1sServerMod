@@ -107,6 +107,7 @@ function Interface.server_mod_page_content(player_index, element, page_name)
     table.add{type="label", caption="Язык сервера:", style = "heading_1_label"}
     table.add{type="textfield", text="русский.", read_only=true,style="stretchable_textfield"}
 
+
     if not currentPlayerData.applied then
       element.add{type="label", caption={"Fed1sServerMod.to_close_window"}}
     end
