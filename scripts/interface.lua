@@ -102,9 +102,9 @@ function Interface.server_mod_page_content(player_index, element, page_name)
     element.add{type="label", caption={"Fed1sServerMod.streamer"}, style = "heading_1_label"}
 
     table.add{type="textfield", text="https://www.youtube.com/@fed1splay", read_only=true,style="stretchable_textfield"}
-    table.add{type="label", caption="Discord:", style = "heading_1_label"}
+    table.add{type="label", caption="Discord :", style = "heading_1_label"}
     table.add{type="textfield", text="https://discord.gg/RDpzDGY", read_only=true,style="stretchable_textfield"}
-    table.add{type="label", caption="Язык сервера:", style = "heading_1_label"}
+    table.add{type="label", caption="Язык сервера :", style = "heading_1_label"}
     table.add{type="textfield", text="русский.", read_only=true,style="stretchable_textfield"}
 
 
