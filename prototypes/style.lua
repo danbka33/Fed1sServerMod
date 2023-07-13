@@ -233,11 +233,75 @@ style.server_mod_content_scroll_pane = {
 }
 
 
--- PlayersInventory styles --
+-- Statistics styles --
 
-style.player_inventory_equipment_grid = {
-  type = "table_style",
-  margin = 0,
-  horizontal_spacing = 0,
-  vertical_spacing = 0
+style.statistics_menu_item = {
+  type = "label_style",
+  font = "default",
+  font_color = {1, 1, 1},
+  margin = 3,
+  hovered_font_color = {1, 1, 0}
+}
+
+style.statistics_menu_current_item = {
+  type = "label_style",
+  parent = "statistics_menu_item",
+  font = "default-bold",
+  font_color = {1, 1, 0}
+}
+
+style.statistics_place = {
+  type = "label_style",
+  width = 30,
+  margin = 3,
+  horizontal_align = "right"
+}
+
+style.statistics_first_ten_place = {
+  type = "label_style",
+  parent = "statistics_place",
+  font = "default-bold"
+}
+
+style.statistics_first_three_place = {
+  type = "label_style",
+  parent = "statistics_first_ten_place",
+  font_color = {1, 1, 0}
+}
+
+style.statistics_player = {
+  type = "label_style",
+  width = 320,
+  margin = 3
+}
+
+style.statistics_first_ten_player = {
+  type = "label_style",
+  parent = "statistics_player",
+  font = "default-bold"
+}
+
+style.statistics_first_three_player = {
+  type = "label_style",
+  parent = "statistics_first_ten_player",
+  font_color = {1, 1, 0}
+}
+
+style.statistics_amount = {
+  type = "label_style",
+  width = 100,
+  margin = 3,
+  horizontal_align = "right"
+}
+
+style.statistics_first_ten_amount = {
+  type = "label_style",
+  parent = "statistics_amount",
+  font = "default-bold"
+}
+
+style.statistics_first_three_amount = {
+  type = "label_style",
+  parent = "statistics_first_ten_amount",
+  font_color = {1, 1, 0}
 }
