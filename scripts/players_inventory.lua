@@ -72,11 +72,13 @@ function PlayersInventory.build_players_inventory_window(player)
 
     titlebar.add{type="label", caption={"players-inventory.caption"}, ignored_by_interaction=true, style="frame_title"}
 
-    local spacer = titlebar.add{type="empty-widget", ignored_by_interaction=true, style="draggable_space"}
-    spacer.style.horizontally_stretchable = true
-    spacer.style.height = 24
-    spacer.style.left_margin = 5
-    spacer.style.right_margin = 5
+    do
+        local spacer = titlebar.add{type="empty-widget", ignored_by_interaction=true, style="draggable_space"}
+        spacer.style.horizontally_stretchable = true
+        spacer.style.height = 24
+        spacer.style.left_margin = 5
+        spacer.style.right_margin = 5
+    end
     
     titlebar.add{
         type = "sprite-button",
@@ -85,6 +87,24 @@ function PlayersInventory.build_players_inventory_window(player)
         hovered_sprite = "utility/close_black",
         clicked_sprite = "utility/close_black",
         style = "frame_action_button"
+    }
+
+
+    -- Settings pane --
+
+    local settings_pane = window.add{type="flow", name="settings_pane", direction="horizontal", visible=player.admin}
+    settings_pane.style.padding = 5
+    
+    do
+        local spacer = settings_pane.add{type="empty-widget", ignored_by_interaction=true}
+        spacer.style.horizontally_stretchable = true
+    end
+
+    local friendly_fire = settings_pane.add{
+        type = "checkbox",
+        name = "players_inventory_friendly_fire",
+        caption = {"players-inventory.caption-friendly-fire"},
+        state = game.forces['player'].friendly_fire
     }
 
 
@@ -1840,6 +1860,17 @@ function PlayersInventory.on_close_players_inventory_window(event)
     end
 end
 
+-- Settings actions --
+
+function PlayersInventory.on_gui_checked_state_changed(event)
+    if not event.element.valid then
+        return
+    end
+
+    if event.element.name == "players_inventory_friendly_fire" then
+        game.forces['player'].friendly_fire = event.element.state
+    end
+end
 
 -- Filters actions --
 
@@ -2334,6 +2365,8 @@ event_handlers.events = {
     [defines.events.on_player_demoted] = PlayersInventory.on_close_players_inventory_window,
 
     ["on-toggle-players-inventory-window"] = PlayersInventory.on_toggle_players_inventory_window,
+
+    [defines.events.on_gui_checked_state_changed] = PlayersInventory.on_gui_checked_state_changed,
 
     [defines.events.on_gui_selected_tab_changed] = PlayersInventory.on_gui_selected_tab_changed,
 
