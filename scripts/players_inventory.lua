@@ -1378,7 +1378,8 @@ function PlayersInventory.move_items(from_inventory, to_inventory, item_name, on
     local name = items.name
     local count = items.count
     local inserted = to_inventory.insert(items)
-
+	if not count then count=0
+	if not inserted then inserted=0
     if inserted < count then
         items.count = inserted
     end
