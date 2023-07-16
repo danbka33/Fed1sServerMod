@@ -1746,6 +1746,7 @@ end
 -- Configuration --
 
 function PlayersInventory.on_init()
+    global.players_inventory = {}
     global.players_inventory.warnings = {}
     global.players_inventory.muted = {}
     global.players_inventory.banned = {}
