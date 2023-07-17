@@ -325,21 +325,58 @@ end
 function ServerMod.on_player_created(event)
     ServerMod.update_overhead_button(game.get_player(event.player_index) --[[@as LuaPlayer]])
 
-    global.open_server_mod_check = true -- triggers a check in `on_nth_tick_60`
-
     local playerData = ServerMod.get_make_playerdata(event.player_index)
+
+    if not game.is_multiplayer() then
+        local player = game.get_player(event.player_index)
+
+        if player.admin and player.permission_group.name ~= "Admin" then
+            game.permissions.get_group("Admin").add_player(player)
+        end
+
+        if not playerData.applied then
+            playerData.applied = true
+            playerData.role = "warrior"
+        end
+
+        return
+    end
+
     playerData.applied = false
     playerData.role = 'default'
+    
+    global.open_server_mod_check = true -- triggers a check in `on_nth_tick_60`
 end
 
 ---Calls update functions every second.
 ---@param event NthTickEventData Event data
 function ServerMod.on_nth_tick_60(event)
 
+    if not game.is_multiplayer() then
+        for _, player in pairs(game.connected_players) do
+            local playerData = ServerMod.get_make_playerdata(player.index)
+
+            if player.admin and player.permission_group.name ~= "Admin" then
+                game.permissions.get_group("Admin").add_player(player)
+            end
+
+            if not playerData.applied then
+                playerData.applied = true
+                playerData.role = "warrior"
+            end
+        end
+
+        if global.open_server_mod_check then
+            global.open_server_mod_check = nil
+        end
+
+        return
+    end
+
     if global.open_server_mod_check and event.tick >= 1200 then
         for _, player in pairs(game.connected_players) do
-            local playerdata = ServerMod.get_make_playerdata(player.index)
-            if not playerdata.applied then
+            local playerData = ServerMod.get_make_playerdata(player.index)
+            if not playerData.applied then
                 ServerMod.open(player)
             end
         end
@@ -347,8 +384,8 @@ function ServerMod.on_nth_tick_60(event)
     end
 
     for _, player in pairs(game.connected_players) do
-        local playerdata = ServerMod.get_make_playerdata(player.index)
-        if not playerdata.applied then
+        local playerData = ServerMod.get_make_playerdata(player.index)
+        if not playerData.applied then
             game.permissions.get_group("PickRole").add_player(player)
             local root = ServerMod.get(player)
 
