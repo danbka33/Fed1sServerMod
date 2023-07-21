@@ -386,22 +386,14 @@ function Statistics.calculate_military_enginears()
 
 	local top = {}
 
-	local function calculate(items)
+	for player_index, items in pairs(builded) do
 		local amount = 0
 
 		for item_name, count in pairs(items) do
 			if Statistics.is_defensive_stuff(item_name) then
 				amount = amount + count
-			elseif item_name == "ghosts" then
-				amount = amount + calculate(count)
 			end
 		end
-
-		return amount
-	end
-
-	for player_index, items in pairs(builded) do
-		local amount = calculate(items)
 
 		if amount > 0 then
 			table.insert(top, {player_index=player_index, amount=amount})
@@ -679,24 +671,16 @@ function Statistics.calculate_railwaymans()
     	return
     end
 
-	local function calculate(items)
+	local top = {}
+
+	for player_index, items in pairs(builded) do
 		local amount = 0
 
 		for item_name, count in pairs(items) do
 			if Statistics.is_railway_stuff(item_name) then
 				amount = amount + count
-			elseif item_name == "ghosts" then
-				amount = amount + calculate(count)
 			end
 		end
-
-		return amount
-	end
-
-	local top = {}
-
-	for player_index, items in pairs(builded) do
-		local amount = calculate(items)
 
 		if amount > 0 then
 			table.insert(top, {player_index=player_index, amount=amount})
