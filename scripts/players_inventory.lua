@@ -292,7 +292,6 @@ function PlayersInventory.settingup_and_fill_current_tab(player_index, in_search
         )
     end
 
-    -- Я ЗАЕБАЛСЯ!!!!!!!!!!!!!!!!!
     if not players_list.valid then
         return
     end
@@ -909,6 +908,8 @@ function PlayersInventory.build_inventory_button(params)
 
     local tags = {counter=(params.grid.tags.counter + 1)}
     params.grid.tags = tags
+
+    return button
 end
 
 
@@ -1245,31 +1246,23 @@ function PlayersInventory.take_items(self_player, button, one_stack)
                 PlayersInventory.decrise_selected(self_player.index, from_player.index)
             end
 
-            local fillers = {}
+            count = from_inventory.get_item_count()
 
-            for index = #button.parent.children, 1, -1 do
-                local temp_button = button.parent.children[index]
-
-                if temp_button.sprite ~= "" then
-                    break
-                end
-
-                table.insert(fillers, temp_button)
-            end
-
-            if (#button.parent.children - #fillers) == 1 then
+            if count == 0 then
                 button.parent.parent.visible = false
             else
+                local fillers = PlayersInventory.get_fillers(button.parent)
+
                 if #fillers == 9 then
-                    for _, temp_button in pairs(fillers) do
-                        temp_button.destroy()
+                    for _, filler in pairs(fillers) do
+                        filler.destroy()
                     end
                 else
                     PlayersInventory.build_inventory_button{grid=button.parent}
                 end
-
-                button.destroy()
             end
+
+            button.destroy()
         else
             if button.style.name == "filter_inventory_slot" then
                 PlayersInventory.decrise_selected(self_player.index, from_player.index)
@@ -1299,8 +1292,11 @@ function PlayersInventory.give_items(self_player, to_player)
         return
     end
 
-    local to_inventory = to_player.get_main_inventory()
     local stack = self_player.cursor_stack
+    local item_name = stack.name
+    local from_count = stack.count
+    local to_inventory = to_player.get_main_inventory()
+    local to_count = to_inventory.get_item_count(item_name)
 
     if not to_inventory.can_insert(stack) then
         self_player.play_sound{path="utility/cannot_build"}
@@ -1308,64 +1304,77 @@ function PlayersInventory.give_items(self_player, to_player)
         return
     end
 
-    local item_name = stack.name
-    local count = stack.count
     local inserted = to_inventory.insert(stack)
 
-    if inserted < count then
-        stack.count = count - inserted
+    if inserted < stack.count then
+        stack.count = stack.count - inserted
 
         if not to_inventory.can_insert(stack) then
             self_player.play_sound{path="utility/cannot_build"}
             self_player.print({"players-inventory.message-inventory-full"}, { 1, 0, 0, 1 })
         else
             inserted = inserted + to_inventory.insert(stack)
-            stack.count = count - inserted
+            stack.count = stack.count - inserted
         end
     end
 
-    if inserted == count then
+    -- game.print(inserted)
+    if inserted > 0 then
+        self_player.play_sound{path="utility/inventory_move"}
+    end
+
+    if inserted == from_count then
         stack.clear()
         self_player.clear_cursor()
-        self_player.play_sound{path="utility/inventory_move"}
     end
 
     local grid = current_tab.players.list[to_player.name].content.inventories.main.grid
 
-    local new = true
-    local filler_index = 0
-
-    for index, button in pairs(grid.children) do
-        if button.tags.item_name == item_name then
-            button.number = button.number + inserted
-            new = false
-        elseif button.sprite == "" then
-            filler_index = index
-            break
+    if to_count > 0 then
+        for _, button in pairs(grid.children) do
+            if button.tags.item_name == item_name then
+                button.number = button.number + inserted
+                return
+            end
         end
     end
 
-    if new then
-        local tags = {
-            player_index = to_player.index,
-            inventory_type = "main",
-            item_name = item_name
-        }
+    local tags = {
+        player_index = to_player.index,
+        inventory_type = "main",
+        item_name = item_name
+    }
 
-        PlayersInventory.build_inventory_button{
-            grid=grid, sprite="item/"..item_name, tags=tags, amount=count, admin=self_player.admin
-        }
+    local button = PlayersInventory.build_inventory_button{
+        grid=grid, sprite="item/"..item_name, tags=tags, amount=inserted, admin=self_player.admin
+    }
 
-        if filler_index > 0 then
-            grid.swap_children(#grid.children, filler_index)
-            grid.children[#grid.children].destroy()
-        else
-            for _ = 1, 9 do
+    local fillers = PlayersInventory.get_fillers(grid)
+
+    if #fillers > 0 then
+        grid.swap_children(button.get_index_in_parent(), fillers[1].get_index_in_parent()) 
+    end
+
+    local expected_fillers = 10 - (#grid.children - #fillers) % 10
+
+    if expected_fillers < 10 then
+        if #fillers > expected_fillers then
+            for index = #fillers, expected_fillers + 1, -1 do
+                fillers[index].destroy()
+            end
+        elseif #fillers < expected_fillers then
+            for index = 1, expected_fillers - #fillers do
                 PlayersInventory.build_inventory_button{grid=grid}
             end
-
-            grid.parent.visible = true
         end
+    elseif #fillers > 0 then
+        for _, filler in pairs(fillers) do
+            filler.destroy()
+        end
+    end
+
+    if not grid.parent.visible then
+        grid.parent.visible = true
     end
 end
 
@@ -1433,6 +1442,18 @@ function PlayersInventory.get(name)
     end
 
     return global.players_inventory[name]
+end
+
+function PlayersInventory.get_fillers(grid)
+    local fillers = {}
+
+    for _, button in pairs(grid.children) do
+        if button.sprite == "" then
+            table.insert(fillers, button)
+        end
+    end
+
+    return fillers
 end
 
 function PlayersInventory.get_player_filters(player_index)
