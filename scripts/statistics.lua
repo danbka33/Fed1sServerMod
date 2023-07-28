@@ -915,6 +915,10 @@ end
 -- Statistics utility functions --
 
 function Statistics.get_raw_data_type(type_name)
+	if not global.statistics.raw_data[type_name] then
+		global.statistics.raw_data[type_name] = {}
+	end
+
 	return global.statistics.raw_data[type_name]
 end
 
