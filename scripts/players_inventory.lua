@@ -2095,6 +2095,8 @@ function PlayersInventory.on_promotion_click(event)
 
         game.print({"players-inventory.message-promoted", target_player.name})
     end
+
+    PlayerColor.apply_player_color(event.player_index)
 end
 
 
