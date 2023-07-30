@@ -95,7 +95,7 @@ function Statistics.build_statistics_window(player)
 		sprite = "utility/close_white",
 		hovered_sprite = "utility/close_black",
 		clicked_sprite = "utility/close_black",
-		style = "frame_action_button"
+		style = "close_button"
 	}
 
 
@@ -1291,10 +1291,29 @@ function Statistics.on_toggle_statistics_window(event)
 	Statistics.build_top_data(player_data)
 
 	window.force_auto_center()
+	game.players[event.player_index].opened = window
 end
 
 function Statistics.on_close_statistics_window(event)
 	Statistics.close_window(global.statistics.players_data[event.player_index])
+end
+
+function Statistics.on_gui_closed(event)
+	if not event.player_index then
+        return
+    end
+
+    if event.gui_type ~= defines.gui_type.custom then
+        return
+    end
+
+    if not event.element or not event.element.valid then
+        return
+    end
+
+    if event.element.name == "statistics_window" then
+        Statistics.close_window(global.statistics.players_data[event.player_index])
+    end
 end
 
 
@@ -1424,6 +1443,7 @@ events.events = {
 	[defines.events.on_player_mined_item] = Statistics.on_player_mined_item,
 	[defines.events.on_player_crafted_item] = Statistics.on_player_crafted_item,
 	[defines.events.on_gui_click] = Statistics.on_gui_click,
+	[defines.events.on_gui_closed] = Statistics.on_gui_closed,
 	[defines.events.on_gui_checked_state_changed] = Statistics.on_gui_checked_state_changed
 }
 

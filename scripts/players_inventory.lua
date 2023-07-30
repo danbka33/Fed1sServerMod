@@ -10,13 +10,6 @@ local in_debug = false
 local in_single = false
 
 local PlayersInventory = {}
-PlayersInventory.roles = {"warrior", "defender", "builder"} -- , "service"
-PlayersInventory.roles_filters = {
-    {"players-inventory.caption-all"},
-    {"players-inventory.caption-warriors"},
-    {"players-inventory.caption-defenders"},
-    {"players-inventory.caption-builders"}
-} -- , {"players-inventory.caption-service"}
 PlayersInventory.inventories = {
     main = defines.inventory.character_main,
     armor = defines.inventory.character_armor,
@@ -24,7 +17,19 @@ PlayersInventory.inventories = {
     ammo = defines.inventory.character_ammo,
     trash = defines.inventory.character_trash
 }
+PlayersInventory.roles_filters = {
+    {"players-inventory.caption-all"},
+    {"players-inventory.caption-warriors"},
+    {"players-inventory.caption-defenders"},
+    {"players-inventory.caption-builders"},
+    {"players-inventory.caption-undefined"}
+}
 PlayersInventory.selected_counts = {}
+PlayersInventory.roles = {}
+
+for _, role in pairs(ServerMod.roles) do
+    table.insert(PlayersInventory.roles, role)
+end
 
 
 -- Interface functions -------------------------------------------------------------------------------------------------
@@ -86,7 +91,7 @@ function PlayersInventory.build_players_inventory_window(player)
         sprite = "utility/close_white",
         hovered_sprite = "utility/close_black",
         clicked_sprite = "utility/close_black",
-        style = "frame_action_button"
+        style = "close_button"
     }
 
 
@@ -123,6 +128,20 @@ function PlayersInventory.build_players_inventory_window(player)
     --
 
     return window
+end
+
+function PlayersInventory.close_players_inventory_window(player)
+    local main_window = player.gui.screen.players_inventory_window
+    local accept_window = player.gui.screen.players_inventory_accept_prompt_window
+
+    if accept_window and accept_window.valid then
+        accept_window.destroy()
+    end
+
+    if main_window and main_window.valid then
+        PlayersInventory.selected_counts[player.index] = {}
+        main_window.destroy()
+    end
 end
 
 function PlayersInventory.create_tab(tabbed_pane, tab_name, player_filters)
@@ -273,21 +292,22 @@ function PlayersInventory.settingup_and_fill_current_tab(player_index, in_search
         local online = (current_tab.name == "online")
 
         if current_tab.filters.players_inventory_role.selected_index > 1 then
-            local role = PlayersInventory.roles[current_tab.filters.players_inventory_role.selected_index - 1]
-            PlayersInventory.fill_players_list_by_role(players_list, online, role)
+            local selected_role = current_tab.filters.players_inventory_role.selected_index - 1
+            local role = PlayersInventory.roles[selected_role] or "undefined"
+            PlayersInventory.fill_player_list_by_role(players_list, online, role)
         else
-            PlayersInventory.fill_players_list_by_role(players_list, online)
+            PlayersInventory.fill_player_list_by_role(players_list, online)
         end
     elseif current_tab.name == "warnings" then
-        PlayersInventory.fill_players_list_by_warnings(players_list)
+        PlayersInventory.fill_player_list_by_warnings(players_list)
     elseif current_tab.name == "muted" then
-        PlayersInventory.fill_players_list_by_filter(players_list, muted)
+        PlayersInventory.fill_player_list_by_filter(players_list, muted)
     elseif current_tab.name == "banned" then
-        PlayersInventory.fill_players_list_by_banned(players_list, banned)
+        PlayersInventory.fill_player_list_by_banned(players_list, banned)
     elseif current_tab.name == "favorites" then
-        PlayersInventory.fill_players_list_by_filter(players_list, player_filters.favorites)
+        PlayersInventory.fill_player_list_by_filter(players_list, player_filters.favorites)
     elseif current_tab.name == "search" then
-        PlayersInventory.fill_players_list_by_name(
+        PlayersInventory.fill_player_list_by_name(
             players_list, string.lower(current_tab.filters.players_inventory_search.text)
         )
     end
@@ -307,7 +327,7 @@ function PlayersInventory.settingup_and_fill_current_tab(player_index, in_search
     current_tab.placeholder.visible = (count == 0)
 end
 
-function PlayersInventory.fill_players_list_by_role(players_list, online, role)
+function PlayersInventory.fill_player_list_by_role(players_list, online, role, manager)
     for player_index, player in pairs(game.players) do
         if not players_list.valid then
             return
@@ -317,12 +337,20 @@ function PlayersInventory.fill_players_list_by_role(players_list, online, role)
             goto continue
         end
 
-        if role then
-            local playerdata = ServerMod.get_make_playerdata(player_index)
+        local playerdata = ServerMod.get_make_playerdata(player_index)
 
-            if not playerdata.applied or playerdata.applied and playerdata.role ~= role then
+        if role then
+            if playerdata.applied and playerdata.role ~= role then
                 goto continue
             end
+
+            if not playerdata.applied and role ~= "undefined" then
+                goto continue
+            end
+        end
+
+        if manager and not playerdata.manager then
+            goto continue
         end
 
         PlayersInventory.build_player_inventory_panel(players_list, player)
@@ -331,7 +359,7 @@ function PlayersInventory.fill_players_list_by_role(players_list, online, role)
     end
 end
 
-function PlayersInventory.fill_players_list_by_filter(players_list, filtered_players)
+function PlayersInventory.fill_player_list_by_filter(players_list, filtered_players)
     for _, player_index in pairs(filtered_players) do
         if not players_list.valid then
             return
@@ -341,11 +369,11 @@ function PlayersInventory.fill_players_list_by_filter(players_list, filtered_pla
     end
 end
 
-function PlayersInventory.fill_players_list_by_warnings(players_list)
+function PlayersInventory.fill_player_list_by_warnings(players_list)
     local warnings = PlayersInventory.get("warnings")
 
     if not warnings then
-        PlayersInventory.emergency_exit(players_list.player_index, "fill_players_list_by_warnings", "warnings")
+        PlayersInventory.emergency_exit(players_list.player_index, "fill_player_list_by_warnings", "warnings")
         return
     end
 
@@ -358,7 +386,7 @@ function PlayersInventory.fill_players_list_by_warnings(players_list)
     end
 end
 
-function PlayersInventory.fill_players_list_by_banned(players_list, filtered_players)
+function PlayersInventory.fill_player_list_by_banned(players_list, filtered_players)
     for player_index, _ in pairs(filtered_players) do
         if not players_list.valid then
             return
@@ -368,7 +396,7 @@ function PlayersInventory.fill_players_list_by_banned(players_list, filtered_pla
     end
 end
 
-function PlayersInventory.fill_players_list_by_name(players_list, name)
+function PlayersInventory.fill_player_list_by_name(players_list, name)
     for _, player in pairs(game.players) do
         if not players_list.valid then
             return
@@ -407,6 +435,7 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
     local banned = PlayersInventory.is_banned(target_player.index)
     local tab_name = current_tab.name
 
+    local playerdata = ServerMod.get_make_playerdata(target_player.index)
 
     local panel = players_list.add{type="frame", name=target_player.name, direction="vertical"}
     panel.style.vertically_stretchable = false
@@ -436,14 +465,12 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
 
     header.add{
         type="label", name="manager", caption={"players-inventory.label-manager-badge"},
-        visible=(target_player.permission_group.name == "Manager")
+        visible=(not target_player.admin and (playerdata.manager or false))
     }
 
-    if (tab_name == "online" or tab_name == "offline") and player_filters.role_index == 1
-    or tab_name ~= "online" and tab_name ~= "offline"
+    if ((tab_name == "online" or tab_name == "offline") and player_filters.role_index == 1)
+    or (tab_name ~= "online" and tab_name ~= "offline")
     then
-        local playerdata = ServerMod.get_make_playerdata(target_player.index)
-
         if playerdata.applied then
             header.add{type="label", name="role", caption={"players-inventory.label-"..playerdata.role.."-badge"}}
         else
@@ -524,7 +551,7 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
         do
             local sprite, altered_sprite, tooltip
 
-            if target_player.permission_group.name == "Manager" then
+            if playerdata.manager then
                 sprite = "players_inventory_demote_white"
                 altered_sprite = "players_inventory_demote_black"
                 tooltip = {"players-inventory.tooltip-demote"}
@@ -1318,7 +1345,6 @@ function PlayersInventory.give_items(self_player, to_player)
         end
     end
 
-    -- game.print(inserted)
     if inserted > 0 then
         self_player.play_sound{path="utility/inventory_move"}
     end
@@ -1775,6 +1801,8 @@ function PlayersInventory.on_init()
 end
 
 function PlayersInventory.on_configuration_changed(data)
+    do return end
+
     if not data then
         return
     end
@@ -1865,20 +1893,28 @@ function PlayersInventory.on_toggle_players_inventory_window(event)
     end
 
     main_window.force_auto_center()
+    player.opened = main_window
 end
 
 function PlayersInventory.on_close_players_inventory_window(event)
-    local player = game.players[event.player_index]
-    local main_window = player.gui.screen.players_inventory_window
-    local accept_window = player.gui.screen.players_inventory_accept_prompt_window
+    PlayersInventory.close_players_inventory_window(game.players[event.player_index])
+end
 
-    if accept_window and accept_window.valid then
-        accept_window.destroy()
+function PlayersInventory.on_gui_closed(event)
+    if not event.player_index then
+        return
     end
 
-    if main_window and main_window.valid then
-        PlayersInventory.selected_counts[player.index] = {}
-        main_window.destroy()
+    if event.gui_type ~= defines.gui_type.custom then
+        return
+    end
+
+    if not event.element or not event.element.valid then
+        return
+    end
+
+    if event.element.name == "players_inventory_window" then
+        PlayersInventory.close_players_inventory_window(game.players[event.player_index])
     end
 end
 
@@ -2061,6 +2097,7 @@ end
 function PlayersInventory.on_promotion_click(event)
     local element = event.element
     local target_player = game.players[element.tags.player_index]
+    local player_data = ServerMod.get_make_playerdata(target_player.index)
     local current_tab = PlayersInventory.get_current_tab(event.player_index)
     local panel
     
@@ -2068,8 +2105,13 @@ function PlayersInventory.on_promotion_click(event)
         panel = current_tab.players.list[target_player.name]
     end
 
-    if target_player.permission_group.name == "Manager" then
-        target_player.permission_group = game.permissions.get_group("Default")
+    if player_data.manager then
+        player_data.manager = false
+
+        if player_data.applied then
+            Permissions.set_group(target_player, Permissions.groups.default)
+            PlayerColor.apply_player_color(target_player)
+        end
 
         element.sprite = "players_inventory_promote_white"
         element.hovered_sprite = "players_inventory_promote_black"
@@ -2082,21 +2124,24 @@ function PlayersInventory.on_promotion_click(event)
 
         game.print({"players-inventory.message-demoted", target_player.name})
     else
-        target_player.permission_group = game.permissions.get_group("Manager")
+        player_data.manager = true
+
+        if player_data.applied then
+            Permissions.set_group(target_player, Permissions.groups.manager)
+            PlayerColor.apply_player_color(target_player)
+        end
 
         element.sprite = "players_inventory_demote_white"
         element.hovered_sprite = "players_inventory_demote_black"
         element.clicked_sprite = "players_inventory_demote_black"
         element.tooltip = {"players-inventory.tooltip-demote"}
-        
+
         if panel then
             panel.header.manager.visible = true
         end
 
         game.print({"players-inventory.message-promoted", target_player.name})
     end
-
-    PlayerColor.apply_player_color(event.player_index)
 end
 
 
@@ -2329,10 +2374,6 @@ PlayersInventory.players_inventory_gui_click_events = {
 
 -- Utility functions ---------------------------------------------------------------------------------------------------
 
-function print(str)
-    game.print(str)
-end
-
 function pprint(obj, types)
     if type(obj) ~= "table" then
         print(type(obj))
@@ -2389,6 +2430,7 @@ event_handlers.events = {
     [defines.events.on_player_demoted] = PlayersInventory.on_close_players_inventory_window,
 
     ["on-toggle-players-inventory-window"] = PlayersInventory.on_toggle_players_inventory_window,
+    [defines.events.on_gui_closed] = PlayersInventory.on_gui_closed,
 
     [defines.events.on_gui_checked_state_changed] = PlayersInventory.on_gui_checked_state_changed,
 

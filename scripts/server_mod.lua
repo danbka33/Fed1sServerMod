@@ -41,6 +41,12 @@ ServerMod.path_content_pane = {
     ServerMod.name_content_pane
 }
 
+ServerMod.roles = {
+    warrior = "warrior",
+    defender = "defender",
+    builder = "builder"
+}
+
 ---Safely traverses the given path to obtain a `LuaGuiElement`.
 ---@param parent LuaGuiElement Parent element to begin traversal from
 ---@param path string[] Array of names of elements to traverse
@@ -65,6 +71,27 @@ function ServerMod.get_make_playerdata(player_index)
     global.playerdata = global.playerdata or {}
     global.playerdata[player_index] = global.playerdata[player_index] or {}
     return global.playerdata[player_index]
+end
+
+---Sets player role
+---@param player LuaPlayer
+---@param player string, member of ServerMod.roles
+function ServerMod.set_role(player_index, role)
+    if not player_index then
+        return
+    end
+
+    if not ServerMod.roles[role] then
+        return
+    end
+
+    local playerData = ServerMod.get_make_playerdata(player_index)
+    
+    if not playerData.applied then
+        playerData.applied = true
+    end
+
+    playerData.role = role
 end
 
 ---Makes or destroys the overhead button depending on player setting.
@@ -145,20 +172,18 @@ function ServerMod.open(player, target_page)
             ignored_by_interaction = true,
             style = "server_mod_drag_handle"
         }
-        titlebar.add {
-            type = "label",
-            name = ServerMod.name_time_label,
-            style = "server_mod_time_label",
-            caption = { "Fed1sServerMod.discord_link" }
-        }
-        titlebar.add { -- Close button
-            type = "sprite-button",
-            sprite = "utility/close_white",
-            hovered_sprite = "utility/close_black",
-            clicked_sprite = "utility/close_black",
-            tags = { root = ServerMod.name_root, action = ServerMod.action_close_button },
-            style = "close_button"
-        }
+
+        local playerData = ServerMod.get_make_playerdata(player.index)
+        if playerData.applied then
+            titlebar.add { -- Close button
+                type = "sprite-button",
+                sprite = "utility/close_white",
+                hovered_sprite = "utility/close_black",
+                clicked_sprite = "utility/close_black",
+                tags = { root = ServerMod.name_root, action = ServerMod.action_close_button },
+                style = "close_button"
+            }
+        end
     end
 
     local main_flow = root.add {
@@ -186,6 +211,7 @@ function ServerMod.open(player, target_page)
         ServerMod.display(player, target_page.interface, target_page.page_name)
     else
         local last_page = ServerMod.get_make_playerdata(player.index).last_page
+        
         if last_page and last_page.interface and remote.interfaces[last_page.interface] then
             ServerMod.display(player, last_page.interface, last_page.page_name)
         else
@@ -243,12 +269,14 @@ end
 ---@param tick uint Game tick
 function ServerMod.update(player, tick)
     local root = ServerMod.get(player)
+
     if not root then
         return
     end
 
     local player_index = player.index
     local last_page = ServerMod.get_make_playerdata(player_index).last_page
+
     if not (last_page and last_page.interface and last_page.page_name) then
         return
     end
@@ -274,6 +302,7 @@ end
 ---Closes the server_mod GUI for the given player
 function ServerMod.close(player)
     local root = ServerMod.get(player)
+
     if root then
         root.destroy()
     end
@@ -281,30 +310,23 @@ end
 
 ---Initializes server_mod.
 function ServerMod.on_init()
-    global.open_server_mod_check = true
     -- In case mod is being added mid-game
     for _, player in pairs(game.players) do
         ServerMod.update_overhead_button(player)
+        Permissions.set_group(player, Permissions.groups.pick_role)
+        ServerMod.open(player)
     end
 end
---script.on_init(ServerMod.on_init)
 
 ---Handles mod changes.
 function ServerMod.on_configuration_changed()
     for _, player in pairs(game.players) do
-        -- Destroy old ServerMod windows if they're open
-        if player.gui.center["server_mod_main"] then
-            player.gui.center["server_mod_main"].destroy()
-        end
-        if player.gui.screen["server_mod_main"] then
-            player.gui.screen["server_mod_main"].destroy()
-        end
-
         -- Refresh overhead buttons
         ServerMod.update_overhead_button(player)
 
         -- If a player had ServerMod open, close/reopen it to refresh its contents
         local root = ServerMod.get(player)
+
         if root then
             ServerMod.close(player)
             ServerMod.open(player)
@@ -323,81 +345,110 @@ end
 ---Handles new player creation.
 ---@param event EventData.on_player_created Event data
 function ServerMod.on_player_created(event)
-    ServerMod.update_overhead_button(game.get_player(event.player_index) --[[@as LuaPlayer]])
+    local player = game.get_player(event.player_index)
 
-    local playerData = ServerMod.get_make_playerdata(event.player_index)
+    if not ServerMod.created then
+        ServerMod.created = {}
+    end
 
-    if not game.is_multiplayer() then
-        local player = game.get_player(event.player_index)
+    ServerMod.created[player.index] = true
 
-        if player.admin and player.permission_group.name ~= "Admin" then
-            game.permissions.get_group("Admin").add_player(player)
-        end
+    ServerMod.update_overhead_button(player)
 
-        if not playerData.applied then
-            playerData.applied = true
-            playerData.role = "warrior"
-        end
-
+    if not game.is_multiplayer() and player.admin then
+        Permissions.set_group(player, Permissions.groups.admin)
         return
     end
 
-    playerData.applied = false
-    playerData.role = 'default'
-    
-    global.open_server_mod_check = true -- triggers a check in `on_nth_tick_60`
+    Permissions.set_group(player, Permissions.groups.pick_role)
+    PlayerColor.apply_player_color(player)
+    ServerMod.open(player)
+end
+
+function ServerMod.on_player_joined_game(event)
+    if ServerMod.created and ServerMod.created[event.player_index] then
+        ServerMod.created[event.player_index] = nil
+        return
+    end
+
+    local player = game.get_player(event.player_index)
+
+    ServerMod.update_overhead_button(player)
+
+    if not game.is_multiplayer() and player.admin
+    and not Permissions.in_group(player, Permissions.groups.admin)
+    then
+        Permissions.set_group(player, Permissions.groups.admin)
+        return
+    end
+
+    local playerData = ServerMod.get_make_playerdata(player.index)
+
+    if not playerData.applied then
+        Permissions.set_group(player, Permissions.groups.pick_role)
+        PlayerColor.apply_player_color(player)
+        ServerMod.open(player)
+        return
+    end
+
+    if player.admin and not Permissions.in_group(player, Permissions.groups.admin) then
+        Permissions.set_group(player, Permissions.groups.admin)
+        PlayerColor.apply_player_color(player)
+    elseif playerData.manager and not Permissions.in_group(player, Permissions.groups.manager) then
+        Permissions.set_group(player, Permissions.groups.manager)
+        PlayerColor.apply_player_color(player)
+    elseif not Permissions.in_group(player, Permissions.groups.default) then
+        Permissions.set_group(player, Permissions.groups.default)
+        PlayerColor.apply_player_color(player)
+    end
+
+end
+
+function ServerMod.on_player_promoted(event)
+    local player = game.players[event.player_index]
+    local playerData = ServerMod.get_make_playerdata(player.index)
+
+    if not playerData.applied then
+        return
+    end
+
+    game.permissions.get_group(Permissions.groups.admin).add_player(player)
+    PlayerColor.apply_player_color(player)
+end
+
+function ServerMod.on_player_demoted(event)
+    local player = game.players[event.player_index]
+    local playerData = ServerMod.get_make_playerdata(player.index)
+
+    if not playerData.applied then
+        return
+    end
+
+    if playerData.manager and not Permissions.in_group(player, Permissions.groups.manager) then
+        Permissions.set_group(player, Permissions.groups.manager)
+    else
+        Permissions.set_group(player, Permissions.groups.default)
+    end
+
+    PlayerColor.apply_player_color(player)
 end
 
 ---Calls update functions every second.
 ---@param event NthTickEventData Event data
 function ServerMod.on_nth_tick_60(event)
+    -- for _, player in pairs(game.connected_players) do
+    --     local playerData = ServerMod.get_make_playerdata(player.index)
 
-    if not game.is_multiplayer() then
-        for _, player in pairs(game.connected_players) do
-            local playerData = ServerMod.get_make_playerdata(player.index)
+    --     if not playerData.applied then
+    --         local root = ServerMod.get(player)
 
-            if player.admin and player.permission_group.name ~= "Admin" then
-                game.permissions.get_group("Admin").add_player(player)
-            end
+    --         if not root then
+    --             ServerMod.open(player)
+    --         end
+    --     end
 
-            if not playerData.applied then
-                playerData.applied = true
-                playerData.role = "warrior"
-            end
-        end
-
-        if global.open_server_mod_check then
-            global.open_server_mod_check = nil
-        end
-
-        return
-    end
-
-    if global.open_server_mod_check and event.tick >= 1200 then
-        for _, player in pairs(game.connected_players) do
-            local playerData = ServerMod.get_make_playerdata(player.index)
-            if not playerData.applied then
-                ServerMod.open(player)
-            end
-        end
-        global.open_server_mod_check = nil
-    end
-
-    for _, player in pairs(game.connected_players) do
-        local playerData = ServerMod.get_make_playerdata(player.index)
-        if not playerData.applied then
-            game.permissions.get_group("PickRole").add_player(player)
-            local root = ServerMod.get(player)
-
-            if not root then
-                ServerMod.open(player)
-            end
-        end
-    end
-
-    for _, player in pairs(game.connected_players) do
-        ServerMod.update(player, event.tick)
-    end
+    --     -- ServerMod.update(player, event.tick)
+    -- end
 end
 
 ---Handles gui clicks, including for the overhead button.
@@ -407,57 +458,67 @@ function ServerMod.on_gui_click(event)
         return
     end
 
-    if event.element.name == ServerMod.name_overhead_button then
-        ServerMod.toggle(game.get_player(event.player_index) --[[@as LuaPlayer]])
-        return
-    end
     local player = game.get_player(event.player_index) --[[@as LuaPlayer]]
-    if event.element.name == "fed1s_warrior" then
-        local playerData = ServerMod.get_make_playerdata(event.player_index)
-        if not playerData.applied then
-            game.permissions.get_group("Default").add_player(player)
+
+    if event.element.name == ServerMod.name_overhead_button then
+        local playerData = ServerMod.get_make_playerdata(player.index)
+
+        if playerData.applied then
+            ServerMod.toggle(player --[[@as LuaPlayer]])
         end
 
-        playerData.applied = true
-        playerData.role = "warrior"
+        return
+    end
+
+    if event.element.name == "fed1s_warrior" then
+        local playerData = ServerMod.get_make_playerdata(player.index)
+
+        if player.admin and not Permissions.in_group(player, Permissions.groups.admin) then
+            Permissions.set_group(player, Permissions.groups.admin)
+        elseif playerData.manager and not Permissions.in_group(player, Permissions.groups.manager) then
+            Permissions.set_group(player, Permissions.groups.manager)
+        elseif not Permissions.in_group(player, Permissions.groups.default) then
+            Permissions.set_group(player, Permissions.groups.default)
+        end
+
+        ServerMod.set_role(player.index, ServerMod.roles.warrior)
+        PlayerColor.apply_player_color(player)
         ServerMod.close(player)
-        PlayerColor.apply_player_color(event.player_index)
 
         return
     elseif event.element.name == "fed1s_defender" then
-        local playerData = ServerMod.get_make_playerdata(event.player_index)
-        if not playerData.applied then
-            game.permissions.get_group("Default").add_player(player)
+        local playerData = ServerMod.get_make_playerdata(player.index)
+
+        if player.admin and not Permissions.in_group(player, Permissions.groups.admin) then
+            Permissions.set_group(player, Permissions.groups.admin)
+        elseif playerData.manager and not Permissions.in_group(player, Permissions.groups.manager) then
+            Permissions.set_group(player, Permissions.groups.manager)
+        elseif not Permissions.in_group(player, Permissions.groups.default) then
+            Permissions.set_group(player, Permissions.groups.default)
         end
-        playerData.applied = true
-        playerData.role = "defender"
+
+        ServerMod.set_role(player.index, ServerMod.roles.defender)
+        PlayerColor.apply_player_color(player)
         ServerMod.close(player)
-        PlayerColor.apply_player_color(event.player_index)
 
         return
     elseif event.element.name == "fed1s_builder" then
-        local playerData = ServerMod.get_make_playerdata(event.player_index)
-        if not playerData.applied then
-            game.permissions.get_group("Default").add_player(player)
+        local playerData = ServerMod.get_make_playerdata(player.index)
+
+        if player.admin and not Permissions.in_group(player, Permissions.groups.admin) then
+            Permissions.set_group(player, Permissions.groups.admin)
+        elseif playerData.manager and not Permissions.in_group(player, Permissions.groups.manager) then
+            Permissions.set_group(player, Permissions.groups.manager)
+        elseif not Permissions.in_group(player, Permissions.groups.default) then
+            Permissions.set_group(player, Permissions.groups.default)
         end
-        playerData.applied = true
-        playerData.role = "builder"
+
+        ServerMod.set_role(player.index, ServerMod.roles.builder)
+        PlayerColor.apply_player_color(player)
         ServerMod.close(player)
-        PlayerColor.apply_player_color(event.player_index)
-        return
-    elseif event.element.name == "fed1s_service" then
-        local playerData = ServerMod.get_make_playerdata(event.player_index)
-        if not playerData.applied then
-            game.permissions.get_group("Default").add_player(player)
-        end
-        playerData.applied = true
-        playerData.role = "service"
-        ServerMod.close(player)
-        PlayerColor.apply_player_color(event.player_index)
+
         return
     end
-
-    --game.print(event.element.name);
 
     if event.element.tags.root ~= "server_mod" then
         return
@@ -480,26 +541,78 @@ end
 ---Closes the Informtron GUI when the player uses `E` or `Esc`.
 ---@param event EventData.on_gui_closed Event data
 function ServerMod.on_gui_closed(event)
+    if not event.player_index then
+        return
+    end
+
+    if event.gui_type ~= defines.gui_type.custom then
+        return
+    end
+
     if not event.element or not event.element.valid then
         return
     end
 
     if event.element.name == ServerMod.name_root then
-        ServerMod.close(game.get_player(event.player_index) --[[@as LuaPlayer]])
+        local playerData = ServerMod.get_make_playerdata(event.player_index)
+
+        if not playerData.applied then
+            return
+        end
+
+        ServerMod.close(game.get_player(event.player_index))
     end
 end
 
 local event_handlers = {}
 event_handlers.on_init = ServerMod.on_init
-event_handlers.on_nth_tick = {}
-event_handlers.on_nth_tick[60] = ServerMod.on_nth_tick_60
+event_handlers.on_nth_tick = {[60] = ServerMod.on_nth_tick_60}
 event_handlers.on_configuration_changed = ServerMod.on_configuration_changed
 event_handlers.events = {
     [defines.events.on_runtime_mod_setting_changed] = ServerMod.on_runtime_mod_setting_changed,
     [defines.events.on_player_created] = ServerMod.on_player_created,
+    [defines.events.on_player_joined_game] = ServerMod.on_player_joined_game,
+    [defines.events.on_player_promoted] = ServerMod.on_player_promoted,
+    [defines.events.on_player_demoted] = ServerMod.on_player_demoted,
     [defines.events.on_gui_closed] = ServerMod.on_gui_closed,
     [defines.events.on_gui_click] = ServerMod.on_gui_click
 }
 EventHandler.add_lib(event_handlers)
+
+
+commands.add_command("reinit", "", function(event)
+    if not event.player_index then
+        return
+    end
+    
+    if not game.players[event.player_index].admin then
+        return
+    end
+
+    for _, group in pairs(game.permissions.groups) do
+        for _, permission in pairs(defines.input_action) do
+            group.set_allows_action(permission, true)
+        end
+    end
+
+    Permissions.create_groups_and_apply_permissions()
+
+    for _, player in pairs(game.players) do
+        local player_data = ServerMod.get_make_playerdata(player.index)
+
+        if player.admin and not Permissions.in_group(player, Permissions.groups.admin) then
+            Permissions.set_group(player, Permissions.groups.admin)
+        elseif Permissions.in_group(player, Permissions.groups.manager) then
+            player_data.manager = true
+        end
+
+        if not player_data.applied then
+            Permissions.set_group(player, Permissions.groups.pick_role)
+        end
+
+        PlayerColor.apply_player_color(player)
+    end
+end)
+
 
 return ServerMod

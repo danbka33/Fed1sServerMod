@@ -51,33 +51,35 @@ function AdminMessage.on_nth_tick_60(event)
 end
 
 function AdminMessage.on_console_chat(event)
-    if event.player_index then
-        local player = game.players[event.player_index]
-        local playerData = ServerMod.get_make_playerdata(event.player_index)
+    if not event.player_index then
+        return
     end
 
-    if player and playerData and playerData.role then
+    local currentPlayer = game.players[event.player_index]
+    local currentPlayerData = ServerMod.get_make_playerdata(event.player_index)
 
-        local sendAdmin = player.permission_group.name == "Admin";
-        local sendManager = player.permission_group.name == "Manager";
-        local sendPlayerName = player.name;
-        local sendRole = playerData.role;
+    if currentPlayer and currentPlayerData and currentPlayerData.role then
 
-        if ((sendAdmin or sendManager) and string.find(event.message, "!") or player.name == "fed1s") then
+        local sendAdmin = currentPlayer.admin
+        local sendManager = currentPlayerData.manager
+        local sendPlayerName = currentPlayer.name
+        local sendRole = currentPlayerData.role
+
+        if ((sendAdmin or sendManager) and string.find(event.message, "!") or currentPlayer.name == "fed1s") then
             table.insert(AdminMessage.get_make_admin_texts(), {
-                message = player.name .. ": " .. event.message,
                 tick = event.tick,
-                role = sendRole,
-                manager = sendManager,
+                playerName = currentPlayer.name,
+                message = currentPlayer.name .. ": " .. event.message,
                 admin = sendAdmin,
-                playerName = player.name
+                manager = sendManager,
+                role = sendRole
             })
 
             for _, player in pairs(game.players) do
-                local isAdmin = player.permission_group.name == "Admin"
-                local isManager = player.permission_group.name == "Manager"
-                local currentPlayerData = ServerMod.get_make_playerdata(player.index)
-                local playerRole = currentPlayerData.role
+                local playerData = ServerMod.get_make_playerdata(player.index)
+                local isAdmin = player.admin
+                local isManager = playerData.manager
+                local playerRole = playerData.role
 
                 if not (sendPlayerName == player.name) and (isAdmin) and ((sendAdmin) or (sendManager and isManager) or (sendManager and sendRole == playerRole)) then
                     player.play_sound({ path = "admin_notify" })
@@ -101,12 +103,13 @@ function AdminMessage.update_overhead_texts(player)
         if adminText then
             adminText.destroy()
         end
+
         return
     end
 
     if gui and playerData and playerData.role then
-        local isManager = player.permission_group.name == "Manager"
-        local isAdmin = player.permission_group.name == "Admin"
+        local isAdmin = player.admin
+        local isManager = playerData.manager
         local playerRole = playerData.role
 
         if not adminText then
