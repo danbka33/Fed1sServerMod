@@ -1252,6 +1252,13 @@ function PlayersInventory.take_items(self_player, button, one_stack)
     local from_player = game.players[button.tags.player_index]
     local from_inventory = from_player.get_inventory(inventory_type)
     local self_inventory = self_player.get_main_inventory()
+
+    if not from_inventory or not from_inventory.valid then
+        self_player.play_sound{path="utility/cannot_build"}
+        self_player.print({"players-inventory.message-inventory-gone"}, { 1, 0, 0, 1 })
+        return
+    end
+
     local fits_all = PlayersInventory.move_items(from_inventory, self_inventory, button.tags.item_name, one_stack)
 
     if not fits_all then
@@ -1323,6 +1330,13 @@ function PlayersInventory.give_items(self_player, to_player)
     local item_name = stack.name
     local from_count = stack.count
     local to_inventory = to_player.get_main_inventory()
+
+    if not to_inventory or not to_inventory.valid then
+        self_player.play_sound{path="utility/cannot_build"}
+        self_player.print({"players-inventory.message-inventory-gone"}, { 1, 0, 0, 1 })
+        return
+    end
+
     local to_count = to_inventory.get_item_count(item_name)
 
     if not to_inventory.can_insert(stack) then
