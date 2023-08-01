@@ -1137,7 +1137,9 @@ function Statistics.on_built_entity(event)
 end
 
 function Statistics.on_player_built_tile(event)
-	if not event.tile or not event.tile.valid then
+	if not event.tile or not event.tile.valid
+	or not event.tiles or not event.tiles.valid
+	then
 		return
 	end
 
@@ -1189,7 +1191,7 @@ function Statistics.on_entity_died(event)
 end
 
 function Statistics.on_player_mined_item(event)
-	if not event.item_stack or not event.item_stack.valid then
+	if not event.item_stack then
 		return
 	end
 
@@ -1198,7 +1200,7 @@ function Statistics.on_player_mined_item(event)
 end
 
 function Statistics.on_player_crafted_item(event)
-	if not event.item_stack or not event.item_stack.valid then
+	if not event.item_stack then
 		return
 	end
 
@@ -1385,21 +1387,24 @@ Statistics.gui_click_events = {
 -- Profiler and debug --
 
 function on_toggle_profiler(event)
-	if not game.players[event.player_index].admin then
+	local player = game.players[event.player_index]
+	if not player.admin then
 		return
 	end
 
-	if global.statistics.profiler_gui then
-		global.statistics.profiler_gui.destroy()
-		global.statistics.profiler_gui = nil
+	if not global.statistics.profiler_gui then
+		global.statistics.profiler_gui = {}
+	end
+
+	if global.statistics.profiler_gui[event.player_index] then
+		global.statistics.profiler_gui[event.player_index].destroy()
+		global.statistics.profiler_gui[event.player_index] = nil
 		return
 	end
 
-	global.statistics.profiler_gui = game.players[event.player_index].gui.left.add{type="text-box", caption="New Profiler"}
-	global.statistics.profiler_gui.style.width = 400
-	global.statistics.profiler_gui.style.height = 600
-
-	-- printp(serpent.block(global.statistics.raw_data))
+	global.statistics.profiler_gui[event.player_index] = player.gui.left.add{type="text-box"}
+	global.statistics.profiler_gui[event.player_index].style.width = 400
+	global.statistics.profiler_gui[event.player_index].style.height = 600
 end
 
 function on_print(event)
