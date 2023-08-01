@@ -589,6 +589,10 @@ commands.add_command("reinit", "", function(event)
         return
     end
 
+    if game.permissions.get_group("Banned") then
+        game.permissions.create_group("Banned").destroy()
+    end
+
     for _, group in pairs(game.permissions.groups) do
         for _, permission in pairs(defines.input_action) do
             group.set_allows_action(permission, true)
