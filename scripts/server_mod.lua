@@ -86,7 +86,7 @@ function ServerMod.set_role(player_index, role)
     end
 
     local playerData = ServerMod.get_make_playerdata(player_index)
-    
+
     if not playerData.applied then
         playerData.applied = true
     end
@@ -135,8 +135,6 @@ function ServerMod.open(player, target_page)
     if ServerMod.get(player) then
         ServerMod.close(player)
     end
-
-    local player_index = player.index
 
     local root = player.gui.screen.add {
         type = "frame",
@@ -211,7 +209,7 @@ function ServerMod.open(player, target_page)
         ServerMod.display(player, target_page.interface, target_page.page_name)
     else
         local last_page = ServerMod.get_make_playerdata(player.index).last_page
-        
+
         if last_page and last_page.interface and remote.interfaces[last_page.interface] then
             ServerMod.display(player, last_page.interface, last_page.page_name)
         else
@@ -239,12 +237,16 @@ end
 function ServerMod.display(player, interface, page_name)
     local root = ServerMod.get(player) --[[@as LuaGuiElement]]
     local content = _get_gui_element(root, ServerMod.path_content_pane) --[[@as LuaGuiElement]]
-    local player_index = player.index
+
+    if not content then
+        return
+    end
 
     content.clear()
+
     if remote.interfaces[interface]["server_mod_page_content"] then
         remote.call(interface, "server_mod_page_content",
-                { player_index = player_index, page_name = page_name, element = content })
+                { player_index = player.index, page_name = page_name, element = content })
     end
 
     -- Make sure all direct descendents are squashable
@@ -258,7 +260,7 @@ function ServerMod.display(player, interface, page_name)
 
     content.scroll_to_top()
 
-    ServerMod.get_make_playerdata(player_index).last_page = {
+    ServerMod.get_make_playerdata(player.index).last_page = {
         interface = interface,
         page_name = page_name
     }
@@ -332,6 +334,38 @@ function ServerMod.on_configuration_changed()
             ServerMod.open(player)
         end
     end
+
+    -- Migration from 1.1.21 to 1.1.22
+
+    Permissions.create_groups_and_apply_permissions()
+
+    if game.permissions.get_group("Banned") then
+        game.permissions.get_group("Banned").destroy()
+    end
+
+    for _, player in pairs(game.players) do
+        local player_data = ServerMod.get_make_playerdata(player.index)
+
+        if player.admin then
+            if not Permissions.in_group(player, Permissions.groups.admin) then
+                Permissions.set_group(player, Permissions.groups.admin)
+            end
+        elseif player_data.manager then
+            if not Permissions.in_group(player, Permissions.groups.manager) then
+                Permissions.set_group(player, Permissions.groups.manager)
+            end
+        elseif Permissions.in_group(player, Permissions.groups.manager) then
+            if not player_data.manager then
+                player_data.manager = true
+            end
+        elseif not Permissions.in_group(player, Permissions.groups.default) then
+            Permissions.set_group(player, Permissions.groups.default)
+        end
+
+        PlayerColor.apply_player_color(player)
+    end
+
+    log("Mod settings updated")
 end
 
 ---Handles changes to the overhead button setting.
@@ -375,33 +409,15 @@ function ServerMod.on_player_joined_game(event)
 
     ServerMod.update_overhead_button(player)
 
-    if not game.is_multiplayer() and player.admin
-    and not Permissions.in_group(player, Permissions.groups.admin)
-    then
-        Permissions.set_group(player, Permissions.groups.admin)
+    if not game.is_multiplayer() then
         return
     end
 
     local playerData = ServerMod.get_make_playerdata(player.index)
 
     if not playerData.applied then
-        Permissions.set_group(player, Permissions.groups.pick_role)
-        PlayerColor.apply_player_color(player)
         ServerMod.open(player)
-        return
     end
-
-    if player.admin and not Permissions.in_group(player, Permissions.groups.admin) then
-        Permissions.set_group(player, Permissions.groups.admin)
-        PlayerColor.apply_player_color(player)
-    elseif playerData.manager and not Permissions.in_group(player, Permissions.groups.manager) then
-        Permissions.set_group(player, Permissions.groups.manager)
-        PlayerColor.apply_player_color(player)
-    elseif not Permissions.in_group(player, Permissions.groups.default) then
-        Permissions.set_group(player, Permissions.groups.default)
-        PlayerColor.apply_player_color(player)
-    end
-
 end
 
 function ServerMod.on_player_promoted(event)
@@ -578,45 +594,6 @@ event_handlers.events = {
     [defines.events.on_gui_click] = ServerMod.on_gui_click
 }
 EventHandler.add_lib(event_handlers)
-
-
-commands.add_command("reinit", "", function(event)
-    if not event.player_index then
-        return
-    end
-    
-    if not game.players[event.player_index].admin then
-        return
-    end
-
-    if game.permissions.get_group("Banned") then
-        game.permissions.create_group("Banned").destroy()
-    end
-
-    for _, group in pairs(game.permissions.groups) do
-        for _, permission in pairs(defines.input_action) do
-            group.set_allows_action(permission, true)
-        end
-    end
-
-    Permissions.create_groups_and_apply_permissions()
-
-    for _, player in pairs(game.players) do
-        local player_data = ServerMod.get_make_playerdata(player.index)
-
-        if player.admin and not Permissions.in_group(player, Permissions.groups.admin) then
-            Permissions.set_group(player, Permissions.groups.admin)
-        elseif Permissions.in_group(player, Permissions.groups.manager) then
-            player_data.manager = true
-        end
-
-        if not player_data.applied then
-            Permissions.set_group(player, Permissions.groups.pick_role)
-        end
-
-        PlayerColor.apply_player_color(player)
-    end
-end)
 
 
 return ServerMod

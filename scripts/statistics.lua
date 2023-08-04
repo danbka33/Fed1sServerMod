@@ -529,7 +529,7 @@ function Statistics.calculate_tree_haters()
 				goto next_item
 			end
 
-			for name, count in pairs(damages) do
+			for _, count in pairs(damages) do
 				amount = amount + count
 			end
 
@@ -573,7 +573,7 @@ function Statistics.calculate_rock_haters()
 				goto next_item
 			end
 
-			for name, count in pairs(damages) do
+			for _, count in pairs(damages) do
 				amount = amount + count
 			end
 
@@ -928,7 +928,7 @@ function Statistics.get_player_raw_data_type(player_index, type_name)
     if not raw_data[player_index] then
         raw_data[player_index] = {}
     end
-    
+
     return raw_data[player_index]
 end
 
@@ -943,7 +943,7 @@ end
 
 function Statistics.split_version(str)
 	local start_index = 1, end_index, major, minor, build
-	
+
 	end_index = string.find(str, ".", start_index, true)
 	major = tonumber(string.sub(str, start_index, end_index))
 
@@ -1039,7 +1039,7 @@ function Statistics.on_configuration_changed(data)
 			if not global.statistics.players_data then
 				global.statistics.players_data = {}
 			end
-			
+
 			for player_index, player in pairs(game.players) do
 				global.statistics.players_data[player_index] = {
 					current_top = Statistics.top_names[1],

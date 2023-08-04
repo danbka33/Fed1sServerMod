@@ -14,8 +14,6 @@ function Interface.server_mod_page_content(player_index, element, page_name)
 
     -- Main page
     if page_name == "server_mod" then
-        local currentOnline = 0
-
         local admins = {}
         local managers = {}
 
@@ -274,7 +272,7 @@ remote.add_interface("server_mod", {
     server_mod_open_to_page = function(data) -- causes ServerMod to open to a specific page
         if data.player_index and data.interface and data.page_name then
             local player = game.get_player(data.player_index)
-            
+
             if player then
                 ServerMod.open(player, {interface=data.interface, page_name=data.page_name})
             end

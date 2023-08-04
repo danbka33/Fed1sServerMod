@@ -6,9 +6,6 @@ local mod_gui = require("__core__/lualib/mod-gui")
 
 -- Constans and variables ----------------------------------------------------------------------------------------------
 
-local in_debug = false
-local in_single = false
-
 local PlayersInventory = {}
 PlayersInventory.inventories = {
     main = defines.inventory.character_main,
@@ -39,7 +36,7 @@ end
 function PlayersInventory.create_toggle_button(player)
     local button_flow = mod_gui.get_button_flow(player)
     local toggle_button = button_flow.players_inventory_toggle_window
-    
+
     if toggle_button then
         toggle_button.destroy()
     end
@@ -84,7 +81,7 @@ function PlayersInventory.build_players_inventory_window(player)
         spacer.style.left_margin = 5
         spacer.style.right_margin = 5
     end
-    
+
     titlebar.add{
         type = "sprite-button",
         name = "players_inventory_close_window_button",
@@ -99,13 +96,13 @@ function PlayersInventory.build_players_inventory_window(player)
 
     local settings_pane = window.add{type="flow", name="settings_pane", direction="horizontal", visible=player.admin}
     settings_pane.style.padding = 5
-    
+
     do
         local spacer = settings_pane.add{type="empty-widget", ignored_by_interaction=true}
         spacer.style.horizontally_stretchable = true
     end
 
-    local friendly_fire = settings_pane.add{
+    settings_pane.add{
         type = "checkbox",
         name = "players_inventory_friendly_fire",
         caption = {"players-inventory.caption-friendly-fire"},
@@ -162,14 +159,14 @@ function PlayersInventory.create_tab(tabbed_pane, tab_name, player_filters)
     end
 
     if is_connection_tabs then
-        local roles = filters.add{
+        filters.add{
             type = "drop-down",
             name = "players_inventory_role",
             items = PlayersInventory.roles_filters,
             selected_index = player_filters.role_index
         }
     elseif is_search then
-        local search = filters.add{type="textfield", name="players_inventory_search"}
+        filters.add{type="textfield", name="players_inventory_search"}
 
         local clear_search = filters.add{
             type = "sprite-button",
@@ -190,7 +187,7 @@ function PlayersInventory.create_tab(tabbed_pane, tab_name, player_filters)
 
     local list = players.add{type="scroll-pane", name="list", direction="vertical"}
     list.style.horizontally_stretchable = true
-    
+
     local count = players.add{type="label", name="count", style="subheader_caption_label"}
     count.style.top_margin = 10
     count.style.padding = 0
@@ -423,6 +420,7 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
         return
     end
 
+
     local warnings = PlayersInventory.get("warnings")
     if not warnings then
         PlayersInventory.emergency_exit(self_player.index, "build_player_inventory_panel", "warnings")
@@ -517,7 +515,7 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
         visible = target_player.connected
     }
 
-    do 
+    do
         local sprite, altered_sprite, tooltip
 
         if PlayersInventory.is_favorite(self_player.index, target_player.index) then
@@ -680,10 +678,10 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
     trash_inventory.add{type="label", caption={"players-inventory.label-trash-inventory"}, style="heading_2_label"}
     trash_inventory.add{type="table", name="grid", column_count=10, tags={counter=1}}
 
-    local trash_inventory = inventories.add{type="flow", name="give", direction="vertical", visible=self_player.admin}
-    trash_inventory.style.top_margin = 12
-    trash_inventory.add{type="label", caption={"players-inventory.label-give"}, style="heading_2_label"}
-    local give_button = trash_inventory.add{
+    local give_to = inventories.add{type="flow", name="give", direction="vertical", visible=self_player.admin}
+    give_to.style.top_margin = 12
+    give_to.add{type="label", caption={"players-inventory.label-give"}, style="heading_2_label"}
+    local give_button = give_to.add{
         type = "sprite-button",
         name = "players_inventory_give_button",
         style = "inventory_slot",
@@ -692,7 +690,7 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
     give_button.style.width = 435
     give_button.style.height = 85
 
-    line = content.add{type="line", direction="horizontal"}
+    local line = content.add{type="line", direction="horizontal"}
     line.style.top_margin = 12
 
     local filler = content.add{type="empty-widget", visible=(not self_player.admin)}
@@ -717,10 +715,10 @@ function PlayersInventory.build_player_inventory_panel(players_list, target_play
 end
 
 function PlayersInventory.remove_panel(current_tab, self_index, target_index)
-    target_player = game.players[target_index]
+    local target_player = game.players[target_index]
 
     current_tab.players.list[target_player.name].destroy()
-    
+
     if #current_tab.players.list.children > 0 then
         if PlayersInventory.selected_counts then
             local selected_counts = PlayersInventory.selected_counts[self_index]
@@ -784,7 +782,7 @@ function PlayersInventory.fill_common_inventory_grid(parent, self_player, invent
     end
 
     local cells_count = #grid.children
-    
+
     if cells_count > 0 then
         if cells_count % 10 > 0 then
             for _ = 1, 10 - cells_count % 10 do
@@ -971,7 +969,7 @@ function PlayersInventory.build_accept_prompt_window(self_player, tags)
     spacer.style.height = 24
     spacer.style.left_margin = 4
     spacer.style.right_margin = 4
-    
+
     titlebar.add{
         type = "sprite-button",
         name = "players_inventory_close_accept_prompt_window_button",
@@ -1012,7 +1010,7 @@ function PlayersInventory.build_accept_prompt_window(self_player, tags)
         warn_info.style.font_color = {0.6 ,0.6, 0.6, 1}
     end
 
-    
+
     -- Buttons --
 
     local buttons = window.add{type="flow", direction="horizontal"}
@@ -1033,7 +1031,7 @@ function PlayersInventory.build_accept_prompt_window(self_player, tags)
     }
 
 
-    -- 
+    --
 
     reason_textbox.focus()
     window.force_auto_center()
@@ -1070,7 +1068,7 @@ function PlayersInventory.kick_player(self_index, target_player, reason)
         PlayersInventory.emergency_exit(self_index, "kick_player", "current_tab")
         return
     end
-    
+
     if current_tab.name == "online" then
         PlayersInventory.remove_panel(current_tab, self_index, target_player.index)
     else
@@ -1094,7 +1092,7 @@ function PlayersInventory.ban_player(self_index, target_player, reason)
         PlayersInventory.emergency_exit(self_index, "ban_player", "current_tab")
         return
     end
-    
+
     if current_tab.name == "online" then
         PlayersInventory.remove_panel(current_tab, self_index, target_player.index)
     else
@@ -1157,7 +1155,7 @@ function PlayersInventory.take_common_inventory(from_inventory, to_inventory, pa
             table.insert(buttons, button)
         else
             table.insert(fillers, button)
-        end    
+        end
     end
 
     if #buttons > 0 then
@@ -1192,7 +1190,7 @@ end
 function PlayersInventory.take_amunition_inventories(from_inventories, to_inventory, parent)
     local to_player = to_inventory.player_owner
     local from_player = from_inventories[1].player_owner
-    
+
 
     -- Armor ----------------------------------------------------------------------------------------------------------
 
@@ -1403,7 +1401,7 @@ function PlayersInventory.give_items(self_player, to_player)
                 fillers[index].destroy()
             end
         elseif #fillers < expected_fillers then
-            for index = 1, expected_fillers - #fillers do
+            for _ = 1, expected_fillers - #fillers do
                 PlayersInventory.build_inventory_button{grid=grid}
             end
         end

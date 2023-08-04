@@ -51,7 +51,7 @@ function Permissions.create_groups_and_apply_permissions()
     for _, permission in pairs(defines.input_action) do
         pick_role_group.set_allows_action(permission, false)
     end
-    
+
     pick_role_group.set_allows_action(defines.input_action.gui_checked_state_changed, true)
     pick_role_group.set_allows_action(defines.input_action.gui_click, true)
     pick_role_group.set_allows_action(defines.input_action.gui_confirmed, true)
@@ -70,7 +70,7 @@ function Permissions.create_groups_and_apply_permissions()
     pick_role_group.set_allows_action(defines.input_action.translate_string, true)
     pick_role_group.set_allows_action(defines.input_action.write_to_console, true)
 
-    
+
     --game.permissions.get_group(Permissions.groups.admin).add_player("fed1s")
     --game.permissions.get_group(Permissions.groups.admin).add_player("danbka33")
     --game.permissions.get_group(Permissions.groups.admin).add_player("Ajick")
@@ -80,11 +80,11 @@ function Permissions.create_groups_and_apply_permissions()
         game.permissions.create_group(Permissions.groups.admin)
     end
 
-    
+
     if game.is_multiplayer() then
         return
     end
-    
+
     local admin_group = game.permissions.get_group(Permissions.groups.admin)
 
     for _, player in pairs(game.players) do
