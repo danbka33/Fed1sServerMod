@@ -80,7 +80,6 @@ function Permissions.create_groups_and_apply_permissions()
         game.permissions.create_group(Permissions.groups.admin)
     end
 
-
     if game.is_multiplayer() then
         return
     end

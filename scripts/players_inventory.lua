@@ -330,7 +330,7 @@ function PlayersInventory.fill_player_list_by_role(players_list, online, role, m
             return
         end
 
-        if player_index == players_list.player_index or player.connected ~= online then
+        if player.connected ~= online then
             goto continue
         end
 
@@ -399,7 +399,7 @@ function PlayersInventory.fill_player_list_by_name(players_list, name)
             return
         end
 
-        if player.index ~= players_list.player_index and string.match(string.lower(player.name), name) then
+        if string.match(string.lower(player.name), name) then
             PlayersInventory.build_player_inventory_panel(players_list, player)
         end
     end

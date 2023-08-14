@@ -147,41 +147,41 @@ function ServerMod.open(player, target_page)
     root.force_auto_center()
     player.opened = root
     if not root.valid then
+        game.print("ServerMod GUI was destroyed by another mod. Please report this to the mod author.")
         return
     end
 
-    do
-        -- Titlebar
-        local titlebar = root.add {
-            type = "flow",
-            name = ServerMod.name_title_flow,
-            direction = "horizontal",
-            style = "server_mod_titlebar_flow"
-        }
-        titlebar.drag_target = root
-        titlebar.add { -- Title
-            type = "label",
-            caption = { "server_mod.window_title_label" },
-            ignored_by_interaction = true,
-            style = "frame_title"
-        }
-        titlebar.add {
-            type = "empty-widget",
-            ignored_by_interaction = true,
-            style = "server_mod_drag_handle"
-        }
 
-        local playerData = ServerMod.get_make_playerdata(player.index)
-        if playerData.applied then
-            titlebar.add { -- Close button
-                type = "sprite-button",
-                sprite = "utility/close_white",
-                hovered_sprite = "utility/close_black",
-                clicked_sprite = "utility/close_black",
-                tags = { root = ServerMod.name_root, action = ServerMod.action_close_button },
-                style = "close_button"
-            }
-        end
+    -- Titlebar
+    local titlebar = root.add {
+        type = "flow",
+        name = ServerMod.name_title_flow,
+        direction = "horizontal",
+        style = "server_mod_titlebar_flow"
+    }
+    titlebar.drag_target = root
+    titlebar.add { -- Title
+        type = "label",
+        caption = { "server_mod.window_title_label" },
+        ignored_by_interaction = true,
+        style = "frame_title"
+    }
+    titlebar.add {
+        type = "empty-widget",
+        ignored_by_interaction = true,
+        style = "server_mod_drag_handle"
+    }
+
+    local playerData = ServerMod.get_make_playerdata(player.index)
+    if playerData.applied then
+        titlebar.add { -- Close button
+            type = "sprite-button",
+            sprite = "utility/close_white",
+            hovered_sprite = "utility/close_black",
+            clicked_sprite = "utility/close_black",
+            tags = { root = ServerMod.name_root, action = ServerMod.action_close_button },
+            style = "close_button"
+        }
     end
 
     local main_flow = root.add {
@@ -391,10 +391,10 @@ function ServerMod.on_player_created(event)
 
     if not game.is_multiplayer() and player.admin then
         Permissions.set_group(player, Permissions.groups.admin)
-        return
+    else
+        Permissions.set_group(player, Permissions.groups.pick_role)
     end
 
-    Permissions.set_group(player, Permissions.groups.pick_role)
     PlayerColor.apply_player_color(player)
     ServerMod.open(player)
 end
@@ -408,10 +408,6 @@ function ServerMod.on_player_joined_game(event)
     local player = game.get_player(event.player_index)
 
     ServerMod.update_overhead_button(player)
-
-    if not game.is_multiplayer() then
-        return
-    end
 
     local playerData = ServerMod.get_make_playerdata(player.index)
 
@@ -452,19 +448,19 @@ end
 ---Calls update functions every second.
 ---@param event NthTickEventData Event data
 function ServerMod.on_nth_tick_60(event)
-    -- for _, player in pairs(game.connected_players) do
-    --     local playerData = ServerMod.get_make_playerdata(player.index)
+     for _, player in pairs(game.connected_players) do
+         local playerData = ServerMod.get_make_playerdata(player.index)
 
-    --     if not playerData.applied then
-    --         local root = ServerMod.get(player)
+         if not playerData.applied then
+             local root = ServerMod.get(player)
 
-    --         if not root then
-    --             ServerMod.open(player)
-    --         end
-    --     end
+             if not root then
+                 ServerMod.open(player)
+             end
+         end
 
-    --     -- ServerMod.update(player, event.tick)
-    -- end
+          ServerMod.update(player, event.tick)
+     end
 end
 
 ---Handles gui clicks, including for the overhead button.
@@ -477,12 +473,7 @@ function ServerMod.on_gui_click(event)
     local player = game.get_player(event.player_index) --[[@as LuaPlayer]]
 
     if event.element.name == ServerMod.name_overhead_button then
-        local playerData = ServerMod.get_make_playerdata(player.index)
-
-        if playerData.applied then
-            ServerMod.toggle(player --[[@as LuaPlayer]])
-        end
-
+        ServerMod.toggle(player --[[@as LuaPlayer]])
         return
     end
 
@@ -582,7 +573,7 @@ end
 
 local event_handlers = {}
 event_handlers.on_init = ServerMod.on_init
-event_handlers.on_nth_tick = {[60] = ServerMod.on_nth_tick_60}
+event_handlers.on_nth_tick = { [60] = ServerMod.on_nth_tick_60 }
 event_handlers.on_configuration_changed = ServerMod.on_configuration_changed
 event_handlers.events = {
     [defines.events.on_runtime_mod_setting_changed] = ServerMod.on_runtime_mod_setting_changed,
@@ -594,6 +585,5 @@ event_handlers.events = {
     [defines.events.on_gui_click] = ServerMod.on_gui_click
 }
 EventHandler.add_lib(event_handlers)
-
 
 return ServerMod
