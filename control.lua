@@ -16,3 +16,5 @@ PlayerColor = require('scripts/player_color')
 AdminMessage = require('scripts/admin_message')
 Chests = require('scripts/chests')
 Statistics = require('scripts/statistics')
+
+SoftReset = require('scripts/soft_reset')

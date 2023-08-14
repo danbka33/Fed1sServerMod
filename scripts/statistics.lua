@@ -1015,6 +1015,25 @@ function Statistics.on_init()
 	global.statistics.show_button = true
 	global.statistics.raw_data = {}
 	global.statistics.players_data = {}
+
+	for player_index, player in pairs(game.players) do
+		global.statistics.players_data[player_index] = {
+			current_top = Statistics.top_names[1],
+			favorite_tops = {},
+			pinned_tops = {},
+			pin_side = "left"
+		}
+
+		local button_flow = mod_gui.get_button_flow(player)
+
+		if button_flow.statistics_toggle_window
+				and button_flow.statistics_toggle_window.valid
+		then
+			button_flow.statistics_toggle_window.destroy()
+		end
+
+		Statistics.create_toggle_button(player)
+	end
 end
 
 function Statistics.on_configuration_changed(data)

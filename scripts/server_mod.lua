@@ -312,6 +312,7 @@ end
 
 ---Initializes server_mod.
 function ServerMod.on_init()
+    global.playerdata = {}
     -- In case mod is being added mid-game
     for _, player in pairs(game.players) do
         ServerMod.update_overhead_button(player)

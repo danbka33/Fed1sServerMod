@@ -6,9 +6,9 @@ local ChestEntities = {
 }
 
 function Chests.on_init()
-    global.necromancyChest = global.necromancyChest or {}
-    global.blueChest = global.blueChest or {}
-    global.yellowChest = global.yellowChest or {}
+    global.necromancyChest = {}
+    global.blueChest = {}
+    global.yellowChest = {}
 end
 
 function Chests.on_character_corpse_expired(event)
