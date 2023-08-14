@@ -23,13 +23,6 @@ function SoftReset.reset()
     end
 end
 
-function SoftReset.on_init()
-    remote.add_interface("soft_reset_scenario", { soft_reset = SoftReset.reset })
-end
-
-local event_handlers = {}
-event_handlers.on_init = SoftReset.on_init
-
-EventHandler.add_lib(event_handlers)
+remote.add_interface("soft_reset_scenario", { soft_reset = SoftReset.reset })
 
 return SoftReset
