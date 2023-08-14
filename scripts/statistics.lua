@@ -1046,7 +1046,7 @@ function Statistics.on_configuration_changed(data)
 
 		local major, minor, build = Statistics.split_version(data.mod_changes["Fed1sServerMod"].old_version)
 
-		if major <= 1 or minor <= 1 or build < 11 then
+		if major == 1 and (minor == 1 and build < 11) then
 			if global.statistics.gui then
 				global.statistics.gui = nil
 			end

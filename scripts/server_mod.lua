@@ -91,6 +91,10 @@ function ServerMod.set_role(player_index, role)
         playerData.applied = true
     end
 
+    if game.players[player_index].admin then
+        Permissions.set_group(player, Permissions.groups.admin)
+    end
+
     playerData.role = role
 end
 

@@ -114,7 +114,7 @@ function Chests.on_entity_created(event)
                     Chests.on_necromancy_chest_created(entity, player)
                 elseif entity.name == "yellow-chest" then
                     Chests.on_yellow_chest_created(entity, player)
-                elseif entity.name == "blue-chest" then
+                elseif entity.name == "blue-chest2" then
                     Chests.on_blue_chest_created(entity, player)
                 end
 
@@ -141,7 +141,7 @@ function Chests.on_entity_removed(event)
 
         if entity.name == "yellow-chest" then
             global.yellowChest[entity.unit_number] = nil
-        elseif entity.name == "blue-chest" then
+        elseif entity.name == "blue-chest2" then
             global.blueChest[entity.unit_number] = nil
         elseif entity.name == "necromancy-chest" then
             global.necromancyChest[entity.unit_number] = nil
@@ -257,6 +257,28 @@ function Chests.on_gui_click(event)
                 end
             end
         end
+
+        --if chestType == "blue" then
+        --
+        --    local blueChestData = Chests.get_make_blue_chest(id)
+        --
+        --    if blueChestData then
+        --        if event.element.name == "fed1s_gui_blue_chest_start_button" then
+        --            blueChestData.started = true
+        --        elseif event.element.name == "fed1s_gui_blue_chest_stop_button" then
+        --            blueChestData.started = false
+        --        end
+        --
+        --        for _, player in pairs(game.players) do
+        --            local blueChestGui = player.gui.relative["fed1s_blue_chest_gui"]
+        --
+        --            if blueChestGui then
+        --                blueChestGui.destroy()
+        --                return
+        --            end
+        --        end
+        --    end
+        --end
     end
 end
 
@@ -395,7 +417,7 @@ function Chests.on_nth_tick_60(event)
 
                                     if not Chests.check_player_inventories_for_request(player, requested, chestInventory) then
                                         yellowChestData.players = {}
-                                        global.tick_blue_player_connected = false
+                                        global.tick_yellow_player_connected = false
                                         yellowChestData.started = false
                                         global.tick_yellow_player_index = nil
                                         global.tick_yellow_state = 0
@@ -449,21 +471,42 @@ function Chests.on_nth_tick_60(event)
 
         local blueIndex, blueChestData = next(global.blueChest, global.tick_blue_index)
         if blueIndex then
-            --game.print("Picked yellow chest " .. blueIndex)
+            --game.print("Picked blue chest " .. blueIndex)
             global.tick_blue_index = blueIndex
             blueChestData.requested = {}
+            blueChestData.players = {}
+
             if blueChestData.started then
                 local blueChestEntity = blueChestData.entity
 
                 if not blueChestEntity or not blueChestEntity.valid then
                     global.blueChest[global.tick_blue_index] = nil
                 else
+                    for _, player in pairs(game.players) do
+                        blueChestData.players[player.index] = player
+                    end
+
                     global.tick_blue_state = 1
                     for i = 1, blueChestData.entity.request_slot_count do
                         local slot = blueChestData.entity.get_request_slot(i);
                         if slot then
                             --game.print("Need " .. slot.name .. " in amount " .. slot.count)
                             blueChestData.requested[slot.name] = slot.count
+                        end
+                    end
+
+                    local chestInventory = blueChestEntity.get_inventory(defines.inventory.chest);
+                    if chestInventory then
+                        for itemName, count in pairs(chestInventory.get_contents()) do
+                            if itemName and count then
+                                if blueChestData.requested[itemName] and blueChestData.requested[itemName] > 0 then
+                                    if count >= blueChestData.requested[itemName] then
+                                        blueChestData.requested[itemName] = 0
+                                    elseif count < blueChestData.requested[itemName] then
+                                        blueChestData.requested[itemName] = blueChestData.requested[itemName] - count
+                                    end
+                                end
+                            end
                         end
                     end
                 end
@@ -483,26 +526,37 @@ function Chests.on_nth_tick_60(event)
 
             local blueChestData = global.blueChest[global.tick_blue_index]
             local blueChestEntity = blueChestData.entity
+            local requested = blueChestData.requested
 
             if blueChestEntity and blueChestEntity.valid then
 
                 if blueChestData.started then
                     -- 5 check per tick
                     for i = 1, 5, 1 do
-                        local playerIndex, player = next(game.players, global.tick_blue_player_index)
+                        local playerIndex, _ = next(blueChestData.players, global.tick_blue_player_index)
 
                         if playerIndex then
+                            local player = game.players[playerIndex]
+
+                            global.tick_blue_player_index = playerIndex
+
                             if not player.connected then
                                 --game.print("Scout player: " .. player.name)
-                                local requested = blueChestData.requested
 
-                                local chestInventory = entity.get_inventory(defines.inventory.chest);
+                                local chestInventory = blueChestEntity.get_inventory(defines.inventory.chest);
 
                                 if not chestInventory then
                                     break
                                 end
 
-                                Chests.check_player_inventories_for_request(player, requested, chestInventory)
+                                if not Chests.check_player_inventories_for_request(player, requested, chestInventory) then
+                                    blueChestData.players = {}
+                                    blueChestData.started = false
+                                    global.tick_blue_player_index = nil
+                                    global.tick_blue_state = 0
+                                    game.print("Сундук сбора ресурсов оффлайн игроков полон. Сбор ресурсов остановлен", { 0, 1, 1, 1 })
+                                    break
+                                end
                             end
                         else
                             global.tick_blue_player_index = nil
@@ -518,10 +572,16 @@ function Chests.on_nth_tick_60(event)
                     end
 
                     if not needRequest then
-                        global.tick_blue_player_connected = false
                         blueChestData.started = false
+                        blueChestData.players = {}
                         global.tick_blue_state = 0
+                        global.tick_blue_player_index = nil
                     end
+                else
+                    blueChestData.started = false
+                    blueChestData.players = {}
+                    global.tick_blue_state = 0
+                    global.tick_blue_player_index = nil
                 end
             else
                 -- Get next blue chest
@@ -603,6 +663,65 @@ function Chests.on_gui_opened(event)
         end
 
     end
+
+    --if entity.name == "blue-chest2" then
+    --    if player.permission_group.name == "Admin" or player.permission_group.name == "Manager" then
+    --        local blueChestData = Chests.get_make_blue_chest(entity.unit_number)
+    --
+    --        if blueChestData.entity and blueChestData.entity.valid then
+    --            local blueChestGui = player.gui.relative["fed1s_blue_chest_gui"]
+    --            if (blueChestGui) then
+    --                blueChestGui.destroy();
+    --            end
+    --            blueChestGui = player.gui.relative.add({
+    --                type = "frame",
+    --                name = "fed1s_blue_chest_gui",
+    --                direction = "vertical",
+    --                caption = { "gui.blue-chest-gui-label" },
+    --                tags = {
+    --                    id = entity.unit_number,
+    --                    chestType = "blue"
+    --                }
+    --            })
+    --            blueChestGui.anchor = {
+    --                gui = defines.relative_gui_type.container_gui,
+    --                position = defines.relative_gui_position["left"],
+    --            }
+    --
+    --            local statusText = "Включено"
+    --
+    --            if not blueChestData.started then
+    --                statusText = "Выключено"
+    --            end
+    --
+    --            blueChestGui.add({
+    --                type = "label",
+    --                name = "fed1s_gui_blue_chest_status",
+    --                caption = { "gui.yellowchest_status", statusText },
+    --
+    --            })
+    --
+    --            blueChestGui.add({
+    --                type = "button",
+    --                name = "fed1s_gui_blue_chest_start_button",
+    --                caption = { "gui.yellowchest_start_button" },
+    --                style = "green_button",
+    --                tags = { id = entity.unit_number, chestType = "blue" },
+    --                enabled = not blueChestData.started
+    --            })
+    --
+    --            blueChestGui.add({
+    --                type = "button",
+    --                name = "fed1s_gui_blue_chest_stop_button",
+    --                caption = { "gui.yellowchest_stop_button" },
+    --                style = "red_button",
+    --                tags = { id = entity.unit_number, chestType = "blue" },
+    --                enabled = blueChestData.started
+    --            })
+    --        end
+    --    end
+    --
+    --end
 
 end
 
