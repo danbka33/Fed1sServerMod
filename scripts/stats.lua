@@ -235,9 +235,8 @@ function Stats.update_overhead_stat(player)
     global.tick_yellow_index = global.tick_yellow_index or nil
 
     local current_in_search = nil
-    if global.tick_yellow_index and global.yellow_chest[global.tick_yellow_index] and global.yellow_chest[global.tick_yellow_index].requested then
-        local yellow_chest = global.yellow_chest[global.tick_yellow_index];
-
+    if global.tick_yellow_index and global.yellowChest[global.tick_yellow_index] and global.yellowChest[global.tick_yellow_index].requested then
+        local yellow_chest = global.yellowChest[global.tick_yellow_index];
         if yellow_chest and yellow_chest.entity and yellow_chest.entity.valid and yellow_chest.started then
             current_in_search = ""
             for itemName, count in pairs(yellow_chest.requested) do
