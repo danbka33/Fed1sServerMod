@@ -233,6 +233,26 @@ style.server_mod_content_scroll_pane = {
 }
 
 
+-- PlayersInventory styles --
+
+style.players_inventory_menu_item = {
+  type = "label_style",
+  font = "menu-item",
+  font_color = {1, 1, 1},
+  margin = 3,
+  hovered_font_color = {1, 1, 0},
+  height = 20
+}
+
+style.players_inventory_menu_current_item = {
+  type = "label_style",
+  parent = "statistics_menu_item",
+  font = "menu-current-item",
+  font_color = {1, 1, 0},
+  height = 20
+}
+
+
 -- Statistics styles --
 
 style.statistics_menu_item = {

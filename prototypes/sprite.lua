@@ -36,19 +36,53 @@ data:extend{
     },
 
 
+    {
+        type = "sprite",
+        name = "players_inventory_set_admin_white",
+        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/set-admin-white.png",
+        priority = "extra-high-no-scale",
+        size = 64,
+        flags = {"icon"}
+    },
+    {
+        type = "sprite",
+        name = "players_inventory_set_admin_black",
+        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/set-admin-black.png",
+        priority = "extra-high-no-scale",
+        size = 64,
+        flags = {"icon"}
+    },
 
     {
         type = "sprite",
-        name = "players_inventory_promote_white",
-        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/promote-white.png",
+        name = "players_inventory_unset_admin_white",
+        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/unset-admin-white.png",
         priority = "extra-high-no-scale",
         size = 64,
         flags = {"icon"}
     },
     {
         type = "sprite",
-        name = "players_inventory_promote_black",
-        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/promote-black.png",
+        name = "players_inventory_unset_admin_black",
+        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/unset-admin-black.png",
+        priority = "extra-high-no-scale",
+        size = 64,
+        flags = {"icon"}
+    },
+
+
+    {
+        type = "sprite",
+        name = "players_inventory_set_manager_white",
+        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/set-manager-white.png",
+        priority = "extra-high-no-scale",
+        size = 64,
+        flags = {"icon"}
+    },
+    {
+        type = "sprite",
+        name = "players_inventory_set_manager_black",
+        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/set-manager-black.png",
         priority = "extra-high-no-scale",
         size = 64,
         flags = {"icon"}
@@ -56,16 +90,16 @@ data:extend{
 
     {
         type = "sprite",
-        name = "players_inventory_demote_white",
-        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/demote-white.png",
+        name = "players_inventory_unset_manager_white",
+        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/unset-manager-white.png",
         priority = "extra-high-no-scale",
         size = 64,
         flags = {"icon"}
     },
     {
         type = "sprite",
-        name = "players_inventory_demote_black",
-        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/demote-black.png",
+        name = "players_inventory_unset_manager_black",
+        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/unset-manager-black.png",
         priority = "extra-high-no-scale",
         size = 64,
         flags = {"icon"}
@@ -166,16 +200,16 @@ data:extend{
 
     {
         type = "sprite",
-        name = "players_inventory_warning_white",
-        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/warning-white.png",
+        name = "players_inventory_warn_white",
+        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/warn-white.png",
         priority = "extra-high-no-scale",
         size = 64,
         flags = {"icon"}
     },
     {
         type = "sprite",
-        name = "players_inventory_warning_black",
-        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/warning-black.png",
+        name = "players_inventory_warn_black",
+        filename = "__Fed1sServerMod__/graphics/icons/PlayersInventory/warn-black.png",
         priority = "extra-high-no-scale",
         size = 64,
         flags = {"icon"}

@@ -51,7 +51,7 @@ Statistics.top_names = {
 function Statistics.create_toggle_button(target_player, redraw)
 	local button_flow = mod_gui.get_button_flow(target_player)
 	local toggle_button = button_flow.statistics_toggle_window_button
-	
+
 	if toggle_button and toggle_button.valid then
 		if redraw then
 			toggle_button.destroy()
@@ -88,7 +88,7 @@ function Statistics.build_statistics_window(player)
 	spacer.style.height = 24
 	spacer.style.left_margin = 5
 	spacer.style.right_margin = 5
-	
+
 	titlebar.add{
 		type = "sprite-button",
 		name = "statistics_close_window_button",
@@ -112,7 +112,7 @@ function Statistics.build_statistics_window(player)
 	local tops_menu = left_panel.add{type="scroll-pane", name="tops_menu", direction="vertical"}
 	tops_menu.style.margin = 10
 	tops_menu.style.width = 200
-	
+
 	for _, top_name in pairs(Statistics.top_names) do
 		local menu_item_style
 
@@ -226,6 +226,7 @@ function Statistics.build_top_data(player_data)
 	for _, element in pairs(player_data.tops_menu.children) do
 		if element.tags.top_name == player_data.current_top then
 			element.style = "statistics_menu_current_item"
+		---@diagnostic disable-next-line: undefined-field
 		elseif element.style.name == "statistics_menu_current_item" then
 			element.style = "statistics_menu_item"
 		end
@@ -942,7 +943,11 @@ function Statistics.sort(top)
 end
 
 function Statistics.split_version(str)
-	local start_index = 1, end_index, major, minor, build
+	local start_index = 1
+	local end_index
+	local major
+	local minor
+	local build
 
 	end_index = string.find(str, ".", start_index, true)
 	major = tonumber(string.sub(str, start_index, end_index))
@@ -1405,7 +1410,7 @@ Statistics.gui_click_events = {
 
 -- Profiler and debug --
 
-function on_toggle_profiler(event)
+local function on_toggle_profiler(event)
 	local player = game.players[event.player_index]
 	if not player.admin then
 		return
@@ -1426,11 +1431,7 @@ function on_toggle_profiler(event)
 	global.statistics.profiler_gui[event.player_index].style.height = 600
 end
 
-function on_print(event)
-	printp(serpent.block(global.statistics.raw_data))
-end
-
-function printp(caption, add)
+local function printp(caption, add)
 	if not global.statistics.profiler_gui then
 		return
 	end
@@ -1440,6 +1441,10 @@ function printp(caption, add)
 	else
 		global.statistics.profiler_gui.caption = caption
 	end
+end
+
+local function on_print(event)
+	printp(serpent.block(global.statistics.raw_data))
 end
 
 
