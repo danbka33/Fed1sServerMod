@@ -1,11 +1,11 @@
 {
   "name": "Fed1sServerMod",
-  "version": "1.1.26",
+  "version": "1.2.0",
   "title": "Fed1sServerMod",
   "author": "danbka33",
   "contact": "",
   "homepage": "",
   "description": "Add color pick and rules",
-  "factorio_version": "1.1",
+  "factorio_version": "1.1.94",
   "dependencies": ["base >= 1.1.0"]
 }

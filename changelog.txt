@@ -1,9 +1,18 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.2.0
+  Features:
+    - Added "fix-permissions" command.
+
+  Changes:
+    - Changed permissions restrictions.
+    - Optimised Players Inventory module.
+    - Removed game statistics, use https://mods.factorio.com/mod/GameStats instead.
+
+---------------------------------------------------------------------------------------------------
 Version: 1.1.22
-Date: 1. 08. 2023
   Features:
     - Reworked role and permissions systems.
   Bugfixes:
     - PlayersInventory: Now the player's color changes when the manager is appointed/removed.
-    - Statistics: Removed checking of property in a parameter of the "on_player_built_tile" event because it's type has been changed in the new version of Factorio.
+    - Statistics: Removed checking of property in a parameter of the "on_player_built_tile" event because it's type has been  changed in the new version of Factorio.
     - PlayersInventory: Fixed an error when trying to take or put items if the player has just died.

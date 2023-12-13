@@ -104,23 +104,4 @@ event_handlers.on_init = Permissions.create_groups_and_apply_permissions
 EventHandler.add_lib(event_handlers)
 
 
-commands.add_command("fix-permissions", nil, function(command)
-    if not command or not command.player_index then
-        return
-    end
-
-    if game.is_multiplayer() then
-       return
-    end
-
-    local player = game.get_player(command.player_index)
-
-    if not player then
-        return
-    end
-
-    Permissions.set_group(player, Permissions.groups.admin)
-end)
-
-
 return Permissions

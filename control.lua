@@ -18,3 +18,5 @@ Chests = require('scripts/chests')
 Statistics = require('scripts/statistics')
 
 SoftReset = require('scripts/soft_reset')
+
+require('scripts.commands')
