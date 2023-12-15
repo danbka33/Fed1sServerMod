@@ -1952,6 +1952,8 @@ function MainWindow.on_toggle_admin_button_click(event)
 
         game.print({"players-inventory.message-now-admin", target_player.name})
     end
+
+    PlayerColor.apply_player_color(target_player)
 end
 
 -- On toggle manager button click
@@ -2027,6 +2029,8 @@ function MainWindow.on_toggle_manager_button_click(event)
 
         game.print({"players-inventory.message-now-manager", target_player.name})
     end
+
+    PlayerColor.apply_player_color(target_player)
 end
 
 -- On warn button click
