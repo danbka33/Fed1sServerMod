@@ -24,5 +24,11 @@ data:extend{
         name = "server_mod_admin_message_on_center",
         setting_type = "runtime-per-user",
         default_value = true,
+    },
+    {
+        type = "bool-setting",
+        name = "server_mod_show_stats",
+        setting_type = "runtime-per-user",
+        default_value = true,
     }
 }
