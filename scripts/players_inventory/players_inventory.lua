@@ -300,7 +300,7 @@ EventHandler.add_lib(event_handlers)
 
 --     debug_ui = player.gui.center.add{type="frame", name="debug_ui"}
 
---     local text = debug_ui.add{type="text-box", text=serpent.block(global.players_inventory)}
+--     local text = debug_ui.add{type="text-box", text=serpent.block(global)}
 --     text.style.width = 500
 --     text.style.height = 800
 -- end)

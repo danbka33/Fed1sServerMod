@@ -38,37 +38,36 @@ commands.add_command("reinit", nil, function(command)
         return
     end
 
+    global.players_inventory = {}
+
     PlayersInventory.on_init()
 
     local globals = global.players_inventory
 
-    if globals.filters then
-        globals.window_filters = globals.filters
-        globals.filters = nil
-    end
-
     if globals.favorites then
         for player_index, favorites in pairs(globals.favorites) do
-            local filters = PlayersInventory.main_window.get_window_filters(player_index)
-            filters.favorites = favorites
+            if favorites then
+                local filters = PlayersInventory.main_window.get_window_filters(player_index)
+                filters.favorites = favorites
+            end
         end
 
         globals.favorites = nil
     end
 
-    if globals.warned then
-        global.warnings = globals.warned
-        globals.warned = nil
+    if global.warned then
+        globals.warnings = global.warned
+        global.warned = nil
     end
 
-    if globals.muted then
-        global.mutes = globals.muted
-        globals.muted = nil
+    if global.muted then
+        globals.mutes = global.muted
+        global.muted = nil
     end
 
-    if globals.banned then
-        global.bans = globals.banned
-        globals.banned = nil
+    if global.banned then
+        globals.bans = global.banned
+        global.banned = nil
     end
 
     for player_index, player in pairs(game.players) do
