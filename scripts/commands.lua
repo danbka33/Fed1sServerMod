@@ -3,7 +3,6 @@
 
 local mod_gui = require("__core__/lualib/mod-gui")
 
-
 commands.add_command("fix-permissions", nil, function(command)
     if not command or not command.player_index then
         return
@@ -111,3 +110,79 @@ commands.add_command("reinit", nil, function(command)
         ::continue::
     end
 end)
+
+commands.add_command("wlist-state", nil, function(command)
+    if not command then
+        return
+    end
+
+    local player
+
+    if command.player_index then
+		player = game.get_player(command.player_index)
+	else
+		player = rcon
+	end
+
+    if not player then
+        return
+    end
+
+    if global.wlist_state then
+        player.print("1")
+    else
+        player.print("0")
+    end
+
+    PlayersInventory.wlist_bot_connected = true
+    PlayersInventory.wlist_bot_last_tick = game.tick
+end)
+
+--[[ commands.add_command("bot-state", nil, function(command)
+    if not command or not command.parameter then
+        return
+    end
+
+    local parameter = command.parameter
+
+    if not parameter then
+        return
+    end
+
+    if parameter == "on" then
+        PlayersInventory.wlist_bot_enabled = true
+    elseif parameter == "off" then
+        PlayersInventory.wlist_bot_enabled = false
+    else
+        return
+    end
+
+    PlayersInventory.wlist_bot_connected = true
+    PlayersInventory.wlist_bot_last_tick = game.tick
+end) ]]
+
+--[[ commands.add_command("voice-in", nil, function(command)
+    if not command or not command.parameter then
+        return
+    end
+
+    local parameter = command.parameter
+
+    if not parameter then
+        return
+    end
+
+    local channel, player_name = string.match(parameter, "(.+)%s(.+)")
+
+    if not channel or not player_name then
+        return
+    end
+
+    local player = game.get_player(player_name)
+
+    if not player then
+        return
+    end
+
+    --
+end) ]]

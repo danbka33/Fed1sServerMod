@@ -15,7 +15,9 @@ local ConfirmWindow = require("scripts.players_inventory.confirm_window")
 
 local PlayersInventory = {
     main_window = require("scripts.players_inventory.main_window"),
-    roles = {}
+    roles = {},
+    wlist_bot_connected = false,
+    wlist_bot_last_tick = 0
 }
 
 PlayersInventory.inventories = {
@@ -172,9 +174,13 @@ function PlayersInventory.on_init()
     if not global.players_inventory.bans then
         global.players_inventory.bans = {}
     end
+
+    if not global.wlist_state then
+        global.wlist_state = false
+    end
 end
 
--- Conguguration changed
+-- Configuration changed
 ---@param data ConfigurationChangedData
 function PlayersInventory.on_configuration_changed(data)
     if not data or not data.mod_changes then
@@ -185,6 +191,15 @@ function PlayersInventory.on_configuration_changed(data)
 
     if not mod_changes then
         return
+    end
+end
+
+-- N-th tick rised
+---@param data NthTickEventData
+function PlayersInventory.on_nth_tick(data)
+    -- 2 minutes
+    if game.tick-PlayersInventory.wlist_bot_last_tick > 7200 then
+        PlayersInventory.wlist_bot_connected = false
     end
 end
 
@@ -270,7 +285,8 @@ end
 
 local event_handlers = {
     on_init = PlayersInventory.on_init,
-    on_configuration_changed = PlayersInventory.on_configuration_changed
+    on_configuration_changed = PlayersInventory.on_configuration_changed,
+    on_nth_tick = {[600]=PlayersInventory.on_nth_tick}
 }
 event_handlers.events = {
     [defines.events.on_player_created] = PlayersInventory.on_player_created,

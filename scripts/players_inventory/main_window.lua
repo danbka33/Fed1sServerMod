@@ -206,6 +206,24 @@ function MainWindow.create(player_index)
     local settings_spacer = settings_panel.add{type="empty-widget", ignored_by_interaction=true}
     settings_spacer.style.horizontally_stretchable = true
 
+    -- Whitelist checkbox
+    local wlist_bot_connected
+
+    if PlayersInventory.wlist_bot_connected then
+        wlist_bot_connected = {"players-inventory.tooltip-bot-connected"}
+    else
+        wlist_bot_connected = {"players-inventory.tooltip-bot-disconnected"}
+    end
+
+    local whitelist = settings_panel.add{
+        type = "checkbox",
+        name = "players_inventory_whitelist_checkbox",
+        caption = {"players-inventory.caption-whitelist"},
+        tooltip = wlist_bot_connected,
+        state = global.wlist_state,
+        enabled = (player.admin and PlayersInventory.wlist_bot_connected)
+    }
+
     -- Friendly fire checkbox
     local friendly_fire = settings_panel.add{
         type = "checkbox",
@@ -1638,6 +1656,8 @@ function MainWindow.on_gui_checked_state_changed(event)
         end
 
         player.force.friendly_fire = element.state
+    elseif element.name == "players_inventory_whitelist_checkbox" then
+        global.wlist_state = element.state
     end
 end
 
@@ -2268,6 +2288,13 @@ event_handlers.events = {
 }
 EventHandler.add_lib(event_handlers)
 
+
+-- /wlist-state
+-- > 0|1
+
+-- /bot-state on|off
+
+-- /voice-in канал ник,
 
 -- Return --
 
