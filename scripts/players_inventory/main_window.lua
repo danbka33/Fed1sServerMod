@@ -339,7 +339,6 @@ function MainWindow.create(player_index)
         style = "frame_action_button",
         elem_type="item"
     }
-    -- elem_type="item"
     filter_controls.search_item.style.top_margin = 2
     filter_controls.search_item.style.left_margin = 5
     filter_controls.search_item.style.size = 35
@@ -350,6 +349,22 @@ function MainWindow.create(player_index)
     filter_controls.search_item_label.style.left_margin = 2
 
     MainWindow.filter_controls[player_index] = filter_controls
+
+    -- Spacer to the right
+    local filters_spacer = filters_container.add{type="empty-widget", ignored_by_interaction=true}
+    filters_spacer.style.horizontally_stretchable = true
+
+    -- Refresh button
+    local refresh_list = filters_container.add{
+        type = "sprite-button",
+        name = "players_inventory_refresh_list_button",
+        sprite = "utility/reset_white",
+        hovered_sprite = "utility/reset",
+        clicked_sprite = "utility/reset",
+        style = "frame_action_button",
+        tooltip = {"players-inventory.tooltip-refresh-list"}
+    }
+    refresh_list.style.top_margin = 2
 
 
     -- Players list --
@@ -556,6 +571,9 @@ function MainWindow.fill_list(player_index)
         ---@diagnostic disable-next-line: param-type-mismatch
         MainWindow.add_player(players_list, player, filters)
     end
+
+    ---@diagnostic disable-next-line: need-check-nil
+    players_list.scroll_to_top()
 end
 
 -- Adds player bar into players list
@@ -1718,6 +1736,16 @@ function MainWindow.on_clear_find_player_button_click(event)
     end
 end
 
+-- On refresh players list button click
+---@param event Event
+function MainWindow.on_refresh_list_button_click(event)
+    if not event or not event.player_index then
+        return
+    end
+
+    MainWindow.fill_list(event.player_index)
+end
+
 -- On open players inventory button click
 ---@param event Event
 function MainWindow.on_open_inventory_button_click(event)
@@ -2210,6 +2238,7 @@ end
 MainWindow.on_gui_click_handlers = {
     ["players_inventory_close_window_button"] = MainWindow.on_close_button_click,
     ["players_inventory_clear_find_player_button"] = MainWindow.on_clear_find_player_button_click,
+    ["players_inventory_refresh_list_button"] = MainWindow.on_refresh_list_button_click,
     ["players_inventory_open_inventory_button"] = MainWindow.on_open_inventory_button_click,
     ["players_inventory_fix_permossions_button"] = MainWindow.on_fix_permossions_button_click,
     ["players_inventory_follow_button"] = MainWindow.on_follow_button_click,
