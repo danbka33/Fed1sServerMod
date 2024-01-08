@@ -221,7 +221,7 @@ function MainWindow.create(player_index)
         caption = {"players-inventory.caption-whitelist"},
         tooltip = wlist_bot_connected,
         state = global.wlist_state,
-        enabled = (player.admin and PlayersInventory.wlist_bot_connected)
+        enabled = (player.admin and global.wlist_bot_connected)
     }
 
     -- Friendly fire checkbox

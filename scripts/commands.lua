@@ -134,8 +134,8 @@ commands.add_command("wlist-state", nil, function(command)
         player.print("0")
     end
 
-    PlayersInventory.wlist_bot_connected = true
-    PlayersInventory.wlist_bot_last_tick = game.tick
+    global.wlist_bot_connected = true
+    global.wlist_bot_last_tick = command.tick
 end)
 
 --[[ commands.add_command("bot-state", nil, function(command)

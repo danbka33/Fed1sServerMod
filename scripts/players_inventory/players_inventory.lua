@@ -15,9 +15,7 @@ local ConfirmWindow = require("scripts.players_inventory.confirm_window")
 
 local PlayersInventory = {
     main_window = require("scripts.players_inventory.main_window"),
-    roles = {},
-    wlist_bot_connected = false,
-    wlist_bot_last_tick = 0
+    roles = {}
 }
 
 PlayersInventory.inventories = {
@@ -178,28 +176,35 @@ function PlayersInventory.on_init()
     if not global.wlist_state then
         global.wlist_state = false
     end
+
+    if not global.wlist_bot_last_tick then
+        global.wlist_bot_last_tick = 0
+    end
+
+    if not global.wlist_bot_connected then
+        global.wlist_bot_connected = false
+    end
 end
 
 -- Configuration changed
 ---@param data ConfigurationChangedData
 function PlayersInventory.on_configuration_changed(data)
-    if not data or not data.mod_changes then
+    if not data
+    or not data.mod_changes
+    or not data.mod_changes["Fed1sServerMod"]
+    then
         return
     end
 
-    local mod_changes = data.mod_changes["Fed1sServerMod"]
-
-    if not mod_changes then
-        return
-    end
+    PlayersInventory.on_init()
 end
 
 -- N-th tick rised
 ---@param data NthTickEventData
 function PlayersInventory.on_nth_tick(data)
-    -- 2 minutes
-    if game.tick-PlayersInventory.wlist_bot_last_tick > 7200 then
-        PlayersInventory.wlist_bot_connected = false
+    -- 7200 ticks = 2 minutes
+    if data.tick-global.wlist_bot_last_tick > 7200 then
+        global.wlist_bot_connected = false
     end
 end
 
@@ -286,15 +291,16 @@ end
 local event_handlers = {
     on_init = PlayersInventory.on_init,
     on_configuration_changed = PlayersInventory.on_configuration_changed,
-    on_nth_tick = {[600]=PlayersInventory.on_nth_tick}
+    on_nth_tick = {
+        [600] = PlayersInventory.on_nth_tick
+    },
+    events = {
+        [defines.events.on_player_created] = PlayersInventory.on_player_created,
+        [defines.events.on_player_joined_game] = PlayersInventory.on_player_joined_game,
+        [defines.events.on_player_demoted] = PlayersInventory.on_player_demoted,
+        [defines.events.on_gui_click] = PlayersInventory.on_gui_click
+    }
 }
-event_handlers.events = {
-    [defines.events.on_player_created] = PlayersInventory.on_player_created,
-    [defines.events.on_player_joined_game] = PlayersInventory.on_player_joined_game,
-    [defines.events.on_player_demoted] = PlayersInventory.on_player_demoted,
-    [defines.events.on_gui_click] = PlayersInventory.on_gui_click
-}
-
 EventHandler.add_lib(event_handlers)
 
 
